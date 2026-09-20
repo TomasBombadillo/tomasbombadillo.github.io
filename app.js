@@ -308,6 +308,9 @@ function loadRecord(record, editable) {
 }
 
 /* ---------- Gallery ---------- */
+let galleryData = [];
+let thumbMode = 'identity';
+
 async function loadGallery() {
   const grid = document.getElementById('galleryGrid');
   grid.innerHTML = '<p class="grid-msg">Loading…</p>';
@@ -325,46 +328,63 @@ async function loadGallery() {
       .limit(60);
 
     if (error) throw error;
-
-    grid.innerHTML = '';
-    if (!data || data.length === 0) {
-      grid.innerHTML = '<p class="grid-msg">No shapes saved yet. Be the first.</p>';
-      return;
-    }
-
-    data.forEach(rec => {
-      const card = document.createElement('button');
-      card.className = 'gcard';
-      card.type = 'button';
-
-      const cv = document.createElement('canvas');
-      cv.width = cv.height = 130;
-      card.appendChild(cv);
-
-      const nm = document.createElement('span');
-      nm.className = 'gcard-name';
-      nm.innerText = rec.display_name || 'Anonymous';
-      card.appendChild(nm);
-
-      const dt = document.createElement('span');
-      dt.className = 'gcard-date';
-      dt.innerText = rec.created_at ? new Date(rec.created_at).toLocaleDateString() : '';
-      card.appendChild(dt);
-
-      grid.appendChild(card);
-      renderCompositeThumb(cv, rec.shape);
-
-      card.addEventListener('click', () => {
-        loadRecord(rec, false);
-        showView('editor');
-        showToast(toastEl, `Opened ${rec.display_name || 'this'} shape as a starting point. Saving creates your own entry.`, false);
-      });
-    });
+    galleryData = data || [];
+    renderGalleryCards();
   } catch (err) {
     console.error('Gallery failed:', err);
     grid.innerHTML = `<p class="grid-msg">${escapeHtml(explainSupabaseError(err))}</p>`;
   }
 }
+
+// Re-runs off the cached fetch — switching thumbnail modes shouldn't hit the DB again.
+function renderGalleryCards() {
+  const grid = document.getElementById('galleryGrid');
+  grid.innerHTML = '';
+
+  if (galleryData.length === 0) {
+    grid.innerHTML = '<p class="grid-msg">No shapes saved yet. Be the first.</p>';
+    return;
+  }
+
+  const renderThumb = THUMB_RENDERERS[thumbMode] || renderIdentityThumb;
+
+  galleryData.forEach(rec => {
+    const card = document.createElement('button');
+    card.className = 'gcard';
+    card.type = 'button';
+
+    const cv = document.createElement('canvas');
+    cv.width = cv.height = 130;
+    card.appendChild(cv);
+
+    const nm = document.createElement('span');
+    nm.className = 'gcard-name';
+    nm.innerText = rec.display_name || 'Anonymous';
+    card.appendChild(nm);
+
+    const dt = document.createElement('span');
+    dt.className = 'gcard-date';
+    dt.innerText = rec.created_at ? new Date(rec.created_at).toLocaleDateString() : '';
+    card.appendChild(dt);
+
+    grid.appendChild(card);
+    renderThumb(cv, rec.shape);
+
+    card.addEventListener('click', () => {
+      loadRecord(rec, false);
+      showView('editor');
+      showToast(toastEl, `Opened ${rec.display_name || 'this'} shape as a starting point. Saving creates your own entry.`, false);
+    });
+  });
+}
+
+document.getElementById('thumbToggle').addEventListener('click', e => {
+  const btn = e.target.closest('.toggle-btn');
+  if (!btn) return;
+  thumbMode = btn.dataset.mode;
+  document.querySelectorAll('#thumbToggle .toggle-btn').forEach(b => b.classList.toggle('active', b === btn));
+  renderGalleryCards();
+});
 
 /* ---------- Diagnostics ---------- */
 const diagModal = document.getElementById('diagModal');

@@ -172,14 +172,67 @@ function renderShape(canvas, peaks, opts = {}) {
   }
 }
 
-/* A gallery thumbnail blends all five characteristics into one glance:
-   we just concatenate every peak, scaled down by how many dimensions exist. */
-function renderCompositeThumb(canvas, shape) {
+/* ------------------------------------------------------------------
+   Gallery thumbnail variants — three different takes on "one icon per
+   person," swappable at runtime for comparison. See engine.js callers.
+   ------------------------------------------------------------------ */
+
+// A) Only the Identity dimension, unmodified — the one canonical view.
+function renderIdentityThumb(canvas, shape) {
+  renderShape(canvas, shape?.identity || [], { labels: false });
+}
+
+// B) One small dot per dimension. Each dot's color is a freq-weighted
+//    blend of that dimension's masc/fem/otro peaks — no shape, just a hue.
+const DOT_COLORS = { masc: [37, 99, 235], fem: [236, 72, 153], otro: [16, 185, 129] };
+
+function dimensionBlendColor(peaks) {
+  if (!peaks || !peaks.length) return 'rgba(0,0,0,0.12)';
+  let wSum = 0, m = 0, f = 0, o = 0;
+  peaks.forEach(p => {
+    const w = Math.max(0.001, p.freq || 0);
+    m += p.masc * w; f += p.fem * w; o += p.otro * w; wSum += w;
+  });
+  if (wSum === 0) return 'rgba(0,0,0,0.12)';
+  m /= wSum; f /= wSum; o /= wSum;
+  const total = m + f + o;
+  if (total === 0) return 'rgba(0,0,0,0.12)';
+  const r = (DOT_COLORS.masc[0] * m + DOT_COLORS.fem[0] * f + DOT_COLORS.otro[0] * o) / total;
+  const g = (DOT_COLORS.masc[1] * m + DOT_COLORS.fem[1] * f + DOT_COLORS.otro[1] * o) / total;
+  const b = (DOT_COLORS.masc[2] * m + DOT_COLORS.fem[2] * f + DOT_COLORS.otro[2] * o) / total;
+  return `rgb(${Math.round(r)},${Math.round(g)},${Math.round(b)})`;
+}
+
+function renderDotStrip(canvas, shape) {
+  const ctx = canvas.getContext('2d');
+  const size = canvas.width;
+  ctx.clearRect(0, 0, size, size);
+  const n = CHARACTERISTICS.length;
+  const dotR = size * 0.09;
+  const gap = size / (n + 1);
+  CHARACTERISTICS.forEach((c, i) => {
+    const cx = gap * (i + 1);
+    const cy = size / 2;
+    ctx.beginPath();
+    ctx.arc(cx, cy, dotR, 0, Math.PI * 2);
+    ctx.fillStyle = dimensionBlendColor(shape?.[c.id]);
+    ctx.fill();
+  });
+}
+
+// C) Composite of just Identity + Expression — the two "self" dimensions,
+//    leaving attraction and anatomy out of the icon.
+function renderComposite2Thumb(canvas, shape) {
+  const dims = ['identity', 'expression'];
   const all = [];
-  CHARACTERISTICS.forEach(c => {
-    (shape?.[c.id] || []).forEach(p => {
-      all.push({ ...p, freq: p.freq / CHARACTERISTICS.length });
-    });
+  dims.forEach(id => {
+    (shape?.[id] || []).forEach(p => all.push({ ...p, freq: p.freq / dims.length }));
   });
   renderShape(canvas, all, { labels: false });
 }
+
+const THUMB_RENDERERS = {
+  identity: renderIdentityThumb,
+  dots: renderDotStrip,
+  composite2: renderComposite2Thumb
+};

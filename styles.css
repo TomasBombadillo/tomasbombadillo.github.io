@@ -279,6 +279,17 @@ input[type=range] { width: 100%; cursor: pointer; }
   color: var(--ink-soft); font-size: 14px; padding: 40px 0;
 }
 
+.thumb-toggle { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+.toggle-btn {
+  padding: 8px 14px; font-size: 13px; font-weight: 600;
+  background: var(--paper); border: 1px solid rgba(0,0,0,0.1);
+  border-radius: 20px; cursor: pointer; color: var(--ink-soft);
+  font-family: var(--font-body);
+  transition: all 0.2s ease;
+}
+.toggle-btn:hover { background: #faf9f6; }
+.toggle-btn.active { background: var(--ink); color: #fff; border-color: var(--ink); }
+
 /* ---------- Modal ---------- */
 .modal {
   position: fixed; inset: 0; z-index: 20;
