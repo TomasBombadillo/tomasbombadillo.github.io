@@ -257,6 +257,24 @@
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRzcGNxY29ncGx3Ymd5bXB1Ym5uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk4NTc1NDMsImV4cCI6MjEwNTQzMzU0M30.kai63QTCbk27thBBrjj7F9uH9UaGhPBkc7xYgEi512g';
     const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   </script>
+  async function saveUserData(displayName, sexAssigned, idMasc, idFem) {
+    const { data, error } = await supabase
+      .from('YOUR_TABLE_NAME') // Replace with your exact table name
+      .insert([
+        {
+          display_name: displayName,
+          sex_assigned_at_birth: sexAssigned,
+          identity_masc: idMasc,
+          identity_fem: idFem
+        }
+      ]);
+  
+    if (error) {
+      console.error('Error saving data:', error);
+    } else {
+      console.log('Data saved successfully!');
+    }
+  }
 </head>
 <body>
 
