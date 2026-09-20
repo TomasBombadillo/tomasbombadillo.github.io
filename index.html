@@ -252,30 +252,13 @@
     .btn-add-peak:hover { background: var(--paper); color: var(--ink); }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script>
-    const SUPABASE_URL = 'https://tspcqcogplwbgympubnn.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRzcGNxY29ncGx3Ymd5bXB1Ym5uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk4NTc1NDMsImV4cCI6MjEwNTQzMzU0M30.kai63QTCbk27thBBrjj7F9uH9UaGhPBkc7xYgEi512g';
-    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  
-    window.saveUserData = async function(displayName, sexAssigned, idMasc, idFem) {
-      const { data, error } = await supabaseClient
-        .from('YOUR_TABLE_NAME') 
-        .insert([
-          {
-            display_name: displayName,
-            sex_assigned_at_birth: sexAssigned,
-            identity_masc: idMasc,
-            identity_fem: idFem
-          }
-        ]);
-    
-      if (error) {
-        console.error('Error saving data:', error);
-      } else {
-        console.log('Data saved successfully!');
-      }
-    }
-  </script>
+<script>
+  const SUPABASE_URL = 'https://tspcqcogplwbgympubnn.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRzcGNxY29ncGx3Ymd5bXB1Ym5uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk4NTc1NDMsImV4cCI6MjEwNTQzMzU0M30.kai63QTCbk27thBBrjj7F9uH9UaGhPBkc7xYgEi512g';
+  const supabaseClient = (typeof supabase !== 'undefined' && supabase.createClient)
+    ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+    : null;
+</script>
 </head>
 <body>
 
@@ -623,12 +606,68 @@
     renderCanvas();
   };
 
-  document.getElementById('saveBtn').addEventListener('click', () => {
-    const name = document.getElementById('displayNameInput').value || "Anonymous";
-    const toast = document.getElementById('toast');
-    toast.innerText = `Results saved for ${name}! (Public sharing coming soon)`;
-    toast.classList.remove('hidden');
-    setTimeout(() => toast.classList.add('hidden'), 3500);
+  // ---------- Saving to Supabase ----------
+  const saveBtn = document.getElementById('saveBtn');
+  const toastEl = document.getElementById('toast');
+  let toastTimer = null;
+
+  function showToast(message, isError) {
+    toastEl.innerText = message;
+    // reuse the same element for both states, just recolour it
+    toastEl.style.background = isError ? '#fee2e2' : '#d1fae5';
+    toastEl.style.color = isError ? '#991b1b' : '#065f46';
+    toastEl.classList.remove('hidden');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toastEl.classList.add('hidden'), 4000);
+  }
+
+  // Flatten appData into a clean payload. Local `id` values are just DOM keys,
+  // so they're dropped rather than persisted.
+  function buildShapePayload() {
+    const shape = {};
+    characteristics.forEach(c => {
+      shape[c.id] = (appData[c.id] || []).map(p => ({
+        name: p.name,
+        masc: p.masc,
+        fem: p.fem,
+        otro: p.otro,
+        freq: p.freq
+      }));
+    });
+    return shape;
+  }
+
+  saveBtn.addEventListener('click', async () => {
+    const name = document.getElementById('displayNameInput').value.trim();
+
+    if (!name) {
+      showToast('Please enter a display name first.', true);
+      document.getElementById('displayNameInput').focus();
+      return;
+    }
+    if (!supabaseClient) {
+      showToast('Could not reach Supabase. Check your connection and reload.', true);
+      return;
+    }
+
+    const originalLabel = saveBtn.innerText;
+    saveBtn.disabled = true;
+    saveBtn.innerText = 'Saving…';
+
+    try {
+      const { error } = await supabaseClient
+        .from('shapes')
+        .insert([{ display_name: name, shape: buildShapePayload() }]);
+
+      if (error) throw error;
+      showToast(`Saved! Your shape is now part of the collection, ${name}.`, false);
+    } catch (err) {
+      console.error('Error saving data:', err);
+      showToast(`Could not save: ${err.message || 'unknown error'}`, true);
+    } finally {
+      saveBtn.disabled = false;
+      saveBtn.innerText = originalLabel;
+    }
   });
 
   // Initialization
