@@ -163,8 +163,9 @@ nav { display: flex; flex-direction: column; gap: 4px; }
   margin-top: 12px; padding: 12px 14px;
   background: #fffbeb; border: 1px solid #fcd34d;
   border-radius: 8px; font-size: 13px;
-  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  display: flex; flex-direction: column; gap: 8px;
 }
+.banner-line { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .id-banner code { background: #fff; font-size: 12.5px; user-select: all; }
 
 .dimension-tabs {

@@ -182,15 +182,33 @@ function buildShapePayload() {
   return shape;
 }
 
+/* The banner doubles as the mode indicator: if it's showing, the next save
+   is an UPDATE to that id, not a new row. Without this the two are invisible. */
 function showIdBanner(id) {
   const banner = document.getElementById('idBanner');
-  banner.innerHTML = `<span>Your ID — keep it to edit later:</span> <code>${escapeHtml(id)}</code>
-                      <button class="link-btn" id="copyIdBtn" type="button">copy</button>`;
+  banner.innerHTML = `
+    <div class="banner-line">
+      <strong>Editing an existing entry.</strong>
+      Saving will overwrite it.
+    </div>
+    <div class="banner-line">
+      <span>ID:</span> <code>${escapeHtml(id)}</code>
+      <button class="link-btn" id="copyIdBtn" type="button">copy</button>
+      <button class="link-btn" id="newShapeBtn" type="button">start a new shape instead</button>
+    </div>`;
   banner.classList.remove('hidden');
+
   document.getElementById('copyIdBtn').onclick = () => {
     navigator.clipboard?.writeText(id);
     document.getElementById('copyIdBtn').innerText = 'copied';
   };
+  document.getElementById('newShapeBtn').onclick = clearEditMode;
+}
+
+function clearEditMode() {
+  currentRecordId = null;
+  document.getElementById('idBanner').classList.add('hidden');
+  showToast(toastEl, 'Now creating a new entry. Saving will not touch the old one.', false);
 }
 
 const saveBtn = document.getElementById('saveBtn');
@@ -212,30 +230,32 @@ saveBtn.addEventListener('click', async () => {
   const label = saveBtn.innerText;
   saveBtn.innerText = 'Saving…';
 
+  const isUpdate = !!currentRecordId;
+
   try {
     const payload = { display_name: name, shape: buildShapePayload() };
-    let result;
 
-    if (currentRecordId) {
-      result = await supabaseClient
-        .from(TABLE_NAME).update(payload).eq('id', currentRecordId).select('id');
-    } else {
-      result = await supabaseClient
-        .from(TABLE_NAME).insert(payload).select('id');
-    }
+    const result = isUpdate
+      ? await supabaseClient.from(TABLE_NAME).update(payload).eq('id', currentRecordId).select('id')
+      : await supabaseClient.from(TABLE_NAME).insert(payload).select('id');
 
     if (result.error) throw result.error;
 
-    // An empty array with no error means RLS silently filtered the row back out.
+    // No error + no rows is RLS filtering, not success. The cause differs by path.
     if (!result.data || result.data.length === 0) {
+      if (isUpdate) {
+        throw new Error(
+          'Update matched zero rows — nothing was written. The table is missing an UPDATE policy for anonymous users (see setup.sql). Use "Save as new" below to store this as a fresh entry instead.'
+        );
+      }
       throw new Error(
-        'The database accepted the request but returned nothing. This usually means there is no SELECT policy for anonymous users — add one so the app can read back the ID.'
+        'The row was written but could not be read back. Add a SELECT policy for anonymous users so the app can return your ID.'
       );
     }
 
     currentRecordId = result.data[0].id;
     showIdBanner(currentRecordId);
-    showToast(toastEl, 'Saved. Your shape is now in the gallery.', false);
+    showToast(toastEl, isUpdate ? 'Updated your existing shape.' : 'Saved. Your shape is now in the gallery.', false);
   } catch (err) {
     console.error('Save failed:', err);
     showToast(toastEl, explainSupabaseError(err), true);
@@ -260,18 +280,20 @@ document.getElementById('loadBtn').addEventListener('click', async () => {
     if (error) throw error;
     if (!data) { showToast(lookupMsg, 'No shape found with that ID.', true); return; }
 
-    loadRecord(data);
+    loadRecord(data, true);
     showView('editor');
-    showToast(toastEl, `Loaded ${data.display_name}'s shape. Edits will update it.`, false);
+    showToast(toastEl, `Loaded ${data.display_name}'s shape. Saving will update it.`, false);
   } catch (err) {
     console.error('Lookup failed:', err);
     showToast(lookupMsg, explainSupabaseError(err), true);
   }
 });
 
-function loadRecord(record) {
-  currentRecordId = record.id;
-  document.getElementById('displayNameInput').value = record.display_name || '';
+/* editable=true only when the user proved they hold the ID (Find by ID).
+   Browsing the gallery loads the shape as a starting point for a NEW entry. */
+function loadRecord(record, editable) {
+  currentRecordId = editable ? record.id : null;
+  document.getElementById('displayNameInput').value = editable ? (record.display_name || '') : '';
   appData = freshData();
   CHARACTERISTICS.forEach(c => {
     const peaks = record.shape?.[c.id];
@@ -279,7 +301,8 @@ function loadRecord(record) {
       appData[c.id] = peaks.map(p => ({ ...p, id: `p${peakSeq++}` }));
     }
   });
-  showIdBanner(record.id);
+  if (editable) showIdBanner(record.id);
+  else document.getElementById('idBanner').classList.add('hidden');
   initTabs();
   renderActiveView();
 }
@@ -331,7 +354,11 @@ async function loadGallery() {
       grid.appendChild(card);
       renderCompositeThumb(cv, rec.shape);
 
-      card.addEventListener('click', () => { loadRecord(rec); showView('editor'); });
+      card.addEventListener('click', () => {
+        loadRecord(rec, false);
+        showView('editor');
+        showToast(toastEl, `Opened ${rec.display_name || 'this'} shape as a starting point. Saving creates your own entry.`, false);
+      });
     });
   } catch (err) {
     console.error('Gallery failed:', err);
@@ -380,6 +407,7 @@ async function runDiagnostics() {
   paint();
 
   // 3. Can we write? (writes a real row, then reports its id)
+  let testId = null;
   try {
     const { data, error } = await supabaseClient
       .from(TABLE_NAME)
@@ -389,15 +417,48 @@ async function runDiagnostics() {
     if (!data || !data.length) {
       lines.push(bad('INSERT returned no row — INSERT policy exists but SELECT policy is missing.'));
     } else {
-      lines.push(ok(`INSERT works. Test row id: ${data[0].id}`));
-      lines.push('       (delete rows named __connection_test__ when done)');
+      testId = data[0].id;
+      lines.push(ok(`INSERT works. Test row id: ${testId}`));
     }
   } catch (err) {
-    lines.push(bad('INSERT failed — this is why saving does not work.'));
+    lines.push(bad('INSERT failed.'));
     lines.push(`       ${explainSupabaseError(err)}`);
     lines.push(`       raw: ${err.code || '-'} ${err.message || ''}`);
   }
   paint();
+
+  // 4. Can we update? A missing UPDATE policy returns success with zero rows,
+  //    so editing an existing entry fails silently. This is the one that bites.
+  if (testId) {
+    try {
+      const { data, error } = await supabaseClient
+        .from(TABLE_NAME)
+        .update({ display_name: '__connection_test_updated__' })
+        .eq('id', testId)
+        .select('id');
+      if (error) throw error;
+      if (!data || !data.length) {
+        lines.push(bad('UPDATE matched zero rows — no UPDATE policy for anonymous users.'));
+        lines.push('       Editing a saved shape will silently do nothing until you add one.');
+      } else {
+        lines.push(ok('UPDATE works — editing saved shapes will persist.'));
+      }
+    } catch (err) {
+      lines.push(bad('UPDATE failed.'));
+      lines.push(`       ${explainSupabaseError(err)}`);
+    }
+    paint();
+
+    // 5. Tidy up after ourselves if DELETE is permitted
+    try {
+      const { error } = await supabaseClient.from(TABLE_NAME).delete().eq('id', testId);
+      if (error) throw error;
+      lines.push(ok('Test row cleaned up.'));
+    } catch {
+      lines.push(`       Note: could not auto-delete the test row (${testId}). Remove it manually.`);
+    }
+    paint();
+  }
 }
 
 /* ---------- Boot ---------- */
