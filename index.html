@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Parametric Gender Density Mapper</title>
+  <style>
+    :root {
+      --paper: #f4f1ea;
+      --paper-line: #e2ddd3;
+      --ink: #20232b;
+      --ink-soft: #606470;
+      --card-bg: #ffffff;
+      --accent: #d97706;
+      --masculino: #2563eb;
+      --femenino: #ec4899;
+      --otro: #10b981;
+      --radius: 12px;
+      --shadow: 0 10px 25px -5px rgba(0,0,0,0.08);
+      --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 24px;
+      background-color: var(--paper);
+      background-image: radial-gradient(var(--paper-line) 1px, transparent 1px);
+      background-size: 20px 20px;
+      color: var(--ink);
+      font-family: var(--font-body);
+    }
+
+    .app-container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    header {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 24px 28px;
+      margin-bottom: 24px;
+    }
+
+    header h1 {
+      margin: 0 0 4px 0;
+      font-size: 24px;
+    }
+
+    .sub-title {
+      color: var(--ink-soft);
+      font-size: 14px;
+      margin: 0 0 20px 0;
+    }
+
+    .user-bar {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .name-input {
+      flex: 1 1 240px;
+      padding: 10px 14px;
+      font-size: 14px;
+      border: 1px solid rgba(0,0,0,0.15);
+      border-radius: 8px;
+      outline: none;
+    }
+
+    .name-input:focus { border-color: var(--accent); }
+
+    .btn-save {
+      padding: 10px 20px;
+      font-size: 14px;
+      font-weight: 600;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: filter 0.2s;
+    }
+
+    .btn-save:hover { filter: brightness(1.08); }
+
+    .toast {
+      margin-top: 10px;
+      padding: 8px 12px;
+      background: #d1fae5;
+      color: #065f46;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      display: inline-block;
+    }
+    .hidden { display: none !important; }
+
+    /* Dimension Selector Tabs */
+    .dimension-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
+
+    .dim-tab {
+      padding: 10px 16px;
+      font-size: 14px;
+      font-weight: 600;
+      background: var(--card-bg);
+      border: 1px solid rgba(0,0,0,0.08);
+      border-radius: 20px;
+      cursor: pointer;
+      color: var(--ink-soft);
+      white-space: nowrap;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+      transition: all 0.2s ease;
+    }
+
+    .dim-tab:hover { background: #faf9f6; }
+    .dim-tab.active {
+      background: var(--ink);
+      color: #fff;
+      border-color: var(--ink);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+    }
+
+    /* Active Characteristic Card */
+    .char-card {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 24px;
+      border: 1px solid rgba(0,0,0,0.06);
+    }
+
+    .char-card-header h2 { margin: 0 0 4px 0; font-size: 18px; }
+    .char-card-header p { margin: 0 0 20px 0; color: var(--ink-soft); font-size: 13px; }
+
+    .char-body {
+      display: flex;
+      gap: 32px;
+      flex-wrap: wrap;
+      align-items: flex-start;
+    }
+
+    .chart-panel {
+      flex: 0 0 320px;
+      display: flex;
+      justify-content: center;
+      margin: 0 auto;
+    }
+
+    canvas {
+      width: 100%;
+      max-width: 320px;
+      height: auto;
+      background: #faf9f6;
+      border-radius: 12px;
+      border: 1px solid rgba(0,0,0,0.05);
+    }
+
+    .controls-panel { flex: 1 1 320px; }
+
+    /* Peak Card Styling */
+    .peak-card {
+      background: var(--paper);
+      border: 1px solid rgba(0,0,0,0.08);
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+
+    .peak-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .peak-name-input {
+      font-size: 14px;
+      font-weight: 600;
+      background: transparent;
+      border: 1px solid transparent;
+      border-bottom: 1px dashed var(--ink-soft);
+      padding: 2px 4px;
+      color: var(--ink);
+      flex: 1;
+    }
+
+    .peak-name-input:focus {
+      background: #ffffff;
+      border: 1px solid var(--accent);
+      border-radius: 4px;
+      outline: none;
+    }
+
+    .btn-remove {
+      background: none;
+      border: none;
+      color: #ef4444;
+      font-size: 12px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .slider-row {
+      display: grid;
+      grid-template-columns: 110px 1fr 40px;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .slider-row label {
+      font-size: 13px;
+      color: var(--ink-soft);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+    .dot-masc { background: var(--masculino); }
+    .dot-fem { background: var(--femenino); }
+    .dot-otro { background: var(--otro); }
+    .dot-freq { background: var(--accent); }
+
+    input[type=range] { width: 100%; cursor: pointer; }
+    .val-display { font-size: 13px; font-weight: 600; text-align: right; }
+
+    .btn-add-peak {
+      width: 100%;
+      padding: 12px;
+      margin-top: 8px;
+      background: transparent;
+      border: 1.5px dashed var(--ink-soft);
+      border-radius: 8px;
+      color: var(--ink-soft);
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn-add-peak:hover { background: var(--paper); color: var(--ink); }
+  </style>
+</head>
+<body>
+
+<div class="app-container">
+  <header>
+    <h1>Parametric Gender Density Mapper</h1>
+    <p class="sub-title">Visualize your identity envelope shape</p>
+    <div class="user-bar">
+      <input type="text" id="displayNameInput" class="name-input" placeholder="Enter your display name...">
+      <button id="saveBtn" class="btn-save" type="button">Save Results</button>
+    </div>
+    <div id="toast" class="toast hidden">Results saved successfully!</div>
+  </header>
+  <div class="dimension-tabs" id="dimTabs"></div>
+  <main id="activeCharCard"></main>
+</div>
+
+<script>
+  // 1. Definition of Characteristics
+  const characteristics = [
+    { id: 'identity', title: 'Gender Identity', desc: 'Internal sense of self' },
+    { id: 'expression', title: 'Gender Expression', desc: 'Outward presentation and behavior' },
+    { id: 'sex', title: 'Anatomical Sex', desc: 'Physical traits and sex characteristics' },
+    { id: 'romantic', title: 'Romantic Attraction', desc: 'Direction of romantic desires' },
+    { id: 'sexual', title: 'Sexual Attraction', desc: 'Direction of physical/sexual desires' }
+  ];
+
+  let currentTab = 'identity';
+
+  // 2. Data Store (Starts with 1 peak, weighting 100%)
+  const appData = {};
+  characteristics.forEach(c => {
+    appData[c.id] = [{ id: Date.now() + Math.random(), name: 'Peak 1', masc: 80, fem: 20, otro: 10, freq: 100 }];
+  });
+
+  // 3. Geometry & Heatmap Setup
+  const CANVAS_SIZE = 320;
+  const CX = 160, CY = 170, R = 110; 
+  
+  // Offscreen canvas for fast pixel manipulation (Matplotlib style mapping)
+  const heatCanvas = document.createElement('canvas');
+  heatCanvas.width = CANVAS_SIZE;
+  heatCanvas.height = CANVAS_SIZE;
+  const heatCtx = heatCanvas.getContext('2d', { willReadFrequently: true });
+  const heatImgData = heatCtx.createImageData(CANVAS_SIZE, CANVAS_SIZE);
+
+  // Viridis Colormap Array (matplotlib default)
+  const viridis = [
+    [68, 1, 84], [72, 35, 116], [64, 67, 135], [52, 94, 141],
+    [41, 120, 142], [32, 144, 140], [34, 168, 132], [68, 191, 112],
+    [122, 209, 81], [189, 223, 38], [253, 231, 37]
+  ];
+
+  function getViridisColor(val) {
+    val = Math.max(0, Math.min(1, val));
+    const idx = val * (viridis.length - 1);
+    const i = Math.floor(idx);
+    const f = idx - i;
+    if (i >= viridis.length - 1) return viridis[viridis.length - 1];
+    const c1 = viridis[i], c2 = viridis[i + 1];
+    return [
+      Math.round(c1[0] + (c2[0] - c1[0]) * f),
+      Math.round(c1[1] + (c2[1] - c1[1]) * f),
+      Math.round(c1[2] + (c2[2] - c1[2]) * f)
+    ];
+  }
+
+  // Smooth Cubic Bezier Circle Outline (Forms perfect circle at 100% on all axes)
+  function createBlobPath(maxM, maxF, maxO) {
+    // Magic constant for approximating 120-degree circle arcs with Beziers
+    const K = 0.769800358;
+    const SQRT3_2 = 0.8660254; // Math.sqrt(3)/2
+    const HALF = 0.5;
+
+    const rM = R * (maxM / 100);
+    const rF = R * (maxF / 100);
+    const rO = R * (maxO / 100);
+
+    const path = new Path2D();
+    if (maxM === 0 && maxF === 0 && maxO === 0) {
+      path.arc(CX, CY, 1, 0, Math.PI * 2);
+      return path;
+    }
+    
+    // Vertex Coordinates
+    const pM = { x: CX, y: CY - rM };
+    const pF = { x: CX + rF * SQRT3_2, y: CY + rF * HALF };
+    const pO = { x: CX - rO * SQRT3_2, y: CY + rO * HALF };
+
+    path.moveTo(pM.x, pM.y);
+    
+    // Curve M to F
+    path.bezierCurveTo(
+      pM.x + rM * K, pM.y,
+      pF.x + rF * K * HALF, pF.y - rF * K * SQRT3_2,
+      pF.x, pF.y
+    );
+    // Curve F to O
+    path.bezierCurveTo(
+      pF.x - rF * K * HALF, pF.y + rF * K * SQRT3_2,
+      pO.x + rO * K * HALF, pO.y + rO * K * SQRT3_2,
+      pO.x, pO.y
+    );
+    // Curve O to M
+    path.bezierCurveTo(
+      pO.x - rO * K * HALF, pO.y - rO * K * SQRT3_2,
+      pM.x - rM * K, pM.y,
+      pM.x, pM.y
+    );
+    return path;
+  }
+
+  // Generate the Matplotlib-style density shader
+  function generateDensityHeatmap(peaks) {
+    const data = heatImgData.data;
+    
+    // Map peaks to physical canvas coordinates using barycentric inner-limit scale
+    const peakData = peaks.map(p => {
+      const sum = p.masc + p.fem + p.otro;
+      const maxV = Math.max(p.masc, p.fem, p.otro);
+      let px = CX, py = CY;
+      
+      if (maxV > 0 && sum > 0) {
+        const wM = p.masc / sum;
+        const wF = p.fem / sum;
+        const wO = p.otro / sum;
+        // Vector interpolation inside the 3 radial axes
+        const vx = wF * 0.866025 + wO * -0.866025;
+        const vy = wM * -1 + wF * 0.5 + wO * 0.5;
+        const rad = R * (maxV / 100);
+        px = CX + rad * vx;
+        py = CY + rad * vy;
+      }
+      return { x: px, y: py, weight: p.freq / 100 };
+    });
+
+    const SIGMA = 28;
+    const TWO_SIGMA_SQ = 2 * SIGMA * SIGMA;
+
+    let i = 0;
+    // Iterate pixels to calculate Gaussian density sum
+    for (let y = 0; y < CANVAS_SIZE; y++) {
+      for (let x = 0; x < CANVAS_SIZE; x++) {
+        let density = 0;
+        for (let p of peakData) {
+          if (p.weight === 0) continue;
+          const dx = x - p.x;
+          const dy = y - p.y;
+          density += p.weight * Math.exp(-(dx*dx + dy*dy) / TWO_SIGMA_SQ);
+        }
+        
+        // Boost density to make peaks pop out into the yellow spectrum cleanly
+        density = Math.min(1, density * 1.5);
+        const rgb = getViridisColor(density);
+        
+        data[i++] = rgb[0];
+        data[i++] = rgb[1];
+        data[i++] = rgb[2];
+        data[i++] = 255;
+      }
+    }
+    heatCtx.putImageData(heatImgData, 0, 0);
+  }
+
+  // Main Render Loop
+  function renderCanvas() {
+    const canvas = document.getElementById('mainCanvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // A. Draw Standard Circular Spider Grid
+    ctx.beginPath();
+    ctx.arc(CX, CY, R, 0, Math.PI * 2);
+    ctx.strokeStyle = "rgba(0, 0, 0, 0.08)";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    [0.33, 0.66].forEach(level => {
+      ctx.beginPath();
+      ctx.arc(CX, CY, R * level, 0, Math.PI * 2);
+      ctx.strokeStyle = "rgba(0, 0, 0, 0.04)";
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    });
+
+    // B. Calculate Limit Blob Envelope
+    const peaks = appData[currentTab] || [];
+    const maxM = Math.max(...peaks.map(s => s.masc), 0);
+    const maxF = Math.max(...peaks.map(s => s.fem), 0);
+    const maxO = Math.max(...peaks.map(s => s.otro), 0);
+
+    // C. Generate and Draw Heatmap clipped within the Limit Blob
+    if (maxM > 0 || maxF > 0 || maxO > 0) {
+      const blobPath = createBlobPath(maxM, maxF, maxO);
+      
+      generateDensityHeatmap(peaks);
+
+      ctx.save();
+      ctx.clip(blobPath);
+      // Fills deep purple outside active density areas
+      ctx.fillStyle = "#440154"; 
+      ctx.fill(blobPath);
+      ctx.drawImage(heatCanvas, 0, 0);
+      ctx.restore();
+
+      // D. Draw Limit Lines as the Outline of the Blob
+      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = "rgba(217, 119, 6, 0.9)"; // Accent orange
+      ctx.stroke(blobPath);
+    }
+
+    // E. Draw Axis Labels over everything
+    ctx.font = "bold 12px sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#2563eb"; ctx.fillText("Masc", CX, CY - R - 12);
+    ctx.fillStyle = "#ec4899"; ctx.fillText("Fem", CX + R * 0.866 + 18, CY + R * 0.5 + 16);
+    ctx.fillStyle = "#10b981"; ctx.fillText("Other", CX - R * 0.866 - 18, CY + R * 0.5 + 16);
+  }
+
+  // 4. UI Builders & Controls
+  function initTabs() {
+    const tabsContainer = document.getElementById('dimTabs');
+    tabsContainer.innerHTML = '';
+    characteristics.forEach(c => {
+      const btn = document.createElement('button');
+      btn.className = `dim-tab ${c.id === currentTab ? 'active' : ''}`;
+      btn.innerText = c.title;
+      btn.onclick = () => {
+        currentTab = c.id;
+        initTabs();
+        renderActiveView();
+      };
+      tabsContainer.appendChild(btn);
+    });
+  }
+
+  function renderActiveView() {
+    const container = document.getElementById('activeCharCard');
+    const char = characteristics.find(c => c.id === currentTab);
+    
+    container.innerHTML = `
+      <div class="char-card">
+        <div class="char-card-header">
+          <h2>${char.title}</h2>
+          <p>${char.desc}</p>
+        </div>
+        <div class="char-body">
+          <div class="chart-panel">
+            <canvas id="mainCanvas" width="320" height="320"></canvas>
+          </div>
+          <div class="controls-panel">
+            <div id="peaks-list"></div>
+            <button class="btn-add-peak" onclick="addPeak()">+ Add Peak</button>
+          </div>
+        </div>
+      </div>
+    `;
+    renderPeaksList();
+    renderCanvas();
+  }
+
+  function renderPeaksList() {
+    const listContainer = document.getElementById('peaks-list');
+    listContainer.innerHTML = '';
+    const peaks = appData[currentTab];
+
+    peaks.forEach(st => {
+      const peakCard = document.createElement('div');
+      peakCard.className = 'peak-card';
+      peakCard.innerHTML = `
+        <div class="peak-card-header">
+          <input type="text" class="peak-name-input" value="${st.name}" oninput="updatePeakName(${st.id}, this.value)">
+          ${peaks.length > 1 ? `<button class="btn-remove" onclick="removePeak(${st.id})">Remove</button>` : ''}
+        </div>
+        <div class="slider-row">
+          <label><span class="dot dot-freq"></span> Weight / Time</label>
+          <input type="range" min="0" max="100" value="${st.freq}" oninput="updatePeakSlider(${st.id}, 'freq', this)">
+          <span class="val-display" id="val-${st.id}-freq">${st.freq}%</span>
+        </div>
+        <div class="slider-row">
+          <label><span class="dot dot-masc"></span> Masculine</label>
+          <input type="range" min="0" max="100" value="${st.masc}" oninput="updatePeakSlider(${st.id}, 'masc', this)">
+          <span class="val-display" id="val-${st.id}-masc">${st.masc}</span>
+        </div>
+        <div class="slider-row">
+          <label><span class="dot dot-fem"></span> Feminine</label>
+          <input type="range" min="0" max="100" value="${st.fem}" oninput="updatePeakSlider(${st.id}, 'fem', this)">
+          <span class="val-display" id="val-${st.id}-fem">${st.fem}</span>
+        </div>
+        <div class="slider-row">
+          <label><span class="dot dot-otro"></span> Other</label>
+          <input type="range" min="0" max="100" value="${st.otro}" oninput="updatePeakSlider(${st.id}, 'otro', this)">
+          <span class="val-display" id="val-${st.id}-otro">${st.otro}</span>
+        </div>
+      `;
+      listContainer.appendChild(peakCard);
+    });
+  }
+
+  // Debounce/Direct Event Handlers
+  window.updatePeakSlider = function(peakId, key, inputEl) {
+    const peaks = appData[currentTab];
+    const item = peaks.find(p => p.id === peakId);
+    if (!item) return;
+
+    let val = parseInt(inputEl.value, 10);
+    if (key === 'freq') {
+      const otherSum = peaks.filter(p => p.id !== peakId).reduce((acc, p) => acc + p.freq, 0);
+      const maxAllowed = Math.max(0, 100 - otherSum);
+      if (val > maxAllowed) {
+        val = maxAllowed;
+        inputEl.value = val;
+      }
+    }
+    item[key] = val;
+    const label = document.getElementById(`val-${peakId}-${key}`);
+    if (label) label.innerText = key === 'freq' ? `${val}%` : val;
+    renderCanvas();
+  };
+
+  window.updatePeakName = function(peakId, nameVal) {
+    const item = appData[currentTab].find(p => p.id === peakId);
+    if (item) item.name = nameVal;
+  };
+
+  window.addPeak = function() {
+    const peaks = appData[currentTab];
+    const currentSum = peaks.reduce((acc, p) => acc + p.freq, 0);
+    const remainingWeight = Math.max(0, 100 - currentSum);
+
+    peaks.push({
+      id: Date.now() + Math.random(),
+      name: `Peak ${peaks.length + 1}`,
+      masc: 50, fem: 50, otro: 10, freq: remainingWeight
+    });
+
+    renderPeaksList();
+    renderCanvas();
+  };
+
+  window.removePeak = function(peakId) {
+    appData[currentTab] = appData[currentTab].filter(p => p.id !== peakId);
+    renderPeaksList();
+    renderCanvas();
+  };
+
+  document.getElementById('saveBtn').addEventListener('click', () => {
+    const name = document.getElementById('displayNameInput').value || "Anonymous";
+    const toast = document.getElementById('toast');
+    toast.innerText = `Results saved for ${name}! (Public sharing coming soon)`;
+    toast.classList.remove('hidden');
+    setTimeout(() => toast.classList.add('hidden'), 3500);
+  });
+
+  // Initialization
+  initTabs();
+  renderActiveView();
+</script>
+</body>
+</html>
