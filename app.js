@@ -16,7 +16,7 @@ function freshData() {
 }
 
 /* ---------- Routing ---------- */
-const views = ['home', 'editor', 'lookup', 'gallery'];
+const views = ['home', 'editor', 'lookup', 'world'];
 
 function showView(name) {
   views.forEach(v => {
@@ -26,7 +26,7 @@ function showView(name) {
     b.classList.toggle('active', b.dataset.view === name);
   });
   if (name === 'editor') renderActiveView();
-  if (name === 'gallery') loadGallery();
+  if (name === 'world') loadWorld();
   window.scrollTo(0, 0);
 }
 
@@ -307,177 +307,44 @@ function loadRecord(record, editable) {
   renderActiveView();
 }
 
-/* ---------- Gallery ---------- */
-let galleryData = [];
-let thumbMode = 'identity';
+/* ---------- The world ---------- */
+async function loadWorld() {
+  const idCanvas = document.getElementById('worldIdentitiesCanvas');
+  const atCanvas = document.getElementById('worldAttractionsCanvas');
+  const msg = document.getElementById('worldMsg');
+  const countEl = document.getElementById('worldCount');
 
-async function loadGallery() {
-  const grid = document.getElementById('galleryGrid');
-  grid.innerHTML = '<p class="grid-msg">Loading…</p>';
+  msg.textContent = 'Loading…';
+  msg.classList.remove('hidden');
 
   if (!supabaseClient) {
-    grid.innerHTML = '<p class="grid-msg">Supabase library did not load.</p>';
+    msg.textContent = 'Supabase library did not load.';
     return;
   }
 
   try {
     const { data, error } = await supabaseClient
       .from(TABLE_NAME)
-      .select('id, display_name, shape, created_at')
-      .order('created_at', { ascending: false })
-      .limit(60);
+      .select('shape')
+      .limit(500);
 
     if (error) throw error;
-    galleryData = data || [];
-    renderGalleryCards();
-  } catch (err) {
-    console.error('Gallery failed:', err);
-    grid.innerHTML = `<p class="grid-msg">${escapeHtml(explainSupabaseError(err))}</p>`;
-  }
-}
+    const records = data || [];
 
-// Re-runs off the cached fetch — switching thumbnail modes shouldn't hit the DB again.
-function renderGalleryCards() {
-  const grid = document.getElementById('galleryGrid');
-  grid.innerHTML = '';
-
-  if (galleryData.length === 0) {
-    grid.innerHTML = '<p class="grid-msg">No shapes saved yet. Be the first.</p>';
-    return;
-  }
-
-  const renderThumb = THUMB_RENDERERS[thumbMode] || renderIdentityThumb;
-
-  galleryData.forEach(rec => {
-    const card = document.createElement('button');
-    card.className = 'gcard';
-    card.type = 'button';
-
-    const cv = document.createElement('canvas');
-    cv.width = cv.height = 130;
-    card.appendChild(cv);
-
-    const nm = document.createElement('span');
-    nm.className = 'gcard-name';
-    nm.innerText = rec.display_name || 'Anonymous';
-    card.appendChild(nm);
-
-    const dt = document.createElement('span');
-    dt.className = 'gcard-date';
-    dt.innerText = rec.created_at ? new Date(rec.created_at).toLocaleDateString() : '';
-    card.appendChild(dt);
-
-    grid.appendChild(card);
-    renderThumb(cv, rec.shape);
-
-    card.addEventListener('click', () => {
-      loadRecord(rec, false);
-      showView('editor');
-      showToast(toastEl, `Opened ${rec.display_name || 'this'} shape as a starting point. Saving creates your own entry.`, false);
-    });
-  });
-}
-
-document.getElementById('thumbToggle').addEventListener('click', e => {
-  const btn = e.target.closest('.toggle-btn');
-  if (!btn) return;
-  thumbMode = btn.dataset.mode;
-  document.querySelectorAll('#thumbToggle .toggle-btn').forEach(b => b.classList.toggle('active', b === btn));
-  renderGalleryCards();
-});
-
-/* ---------- Diagnostics ---------- */
-const diagModal = document.getElementById('diagModal');
-const diagOut = document.getElementById('diagOut');
-
-document.getElementById('diagBtn').addEventListener('click', runDiagnostics);
-document.getElementById('diagClose').addEventListener('click', () => diagModal.classList.add('hidden'));
-diagModal.addEventListener('click', e => { if (e.target === diagModal) diagModal.classList.add('hidden'); });
-
-async function runDiagnostics() {
-  diagModal.classList.remove('hidden');
-  const lines = [];
-  const ok = s => `<span class="diag-ok">PASS</span>  ${s}`;
-  const bad = s => `<span class="diag-bad">FAIL</span>  ${s}`;
-  const paint = () => { diagOut.innerHTML = lines.join('\n'); };
-
-  lines.push('Running…'); paint();
-  lines.length = 0;
-
-  // 1. SDK loaded?
-  if (!supabaseClient) {
-    lines.push(bad('Supabase SDK did not load from the CDN.'));
-    paint(); return;
-  }
-  lines.push(ok('Supabase SDK loaded.'));
-  lines.push(`       URL: ${SUPABASE_URL}`);
-  lines.push(`       table: ${TABLE_NAME}`);
-  paint();
-
-  // 2. Can we read?
-  try {
-    const { error } = await supabaseClient.from(TABLE_NAME).select('id').limit(1);
-    if (error) throw error;
-    lines.push(ok('SELECT works — table exists and is readable.'));
-  } catch (err) {
-    lines.push(bad('SELECT failed.'));
-    lines.push(`       ${explainSupabaseError(err)}`);
-    lines.push(`       raw: ${err.code || '-'} ${err.message || ''}`);
-  }
-  paint();
-
-  // 3. Can we write? (writes a real row, then reports its id)
-  let testId = null;
-  try {
-    const { data, error } = await supabaseClient
-      .from(TABLE_NAME)
-      .insert({ display_name: '__connection_test__', shape: {} })
-      .select('id');
-    if (error) throw error;
-    if (!data || !data.length) {
-      lines.push(bad('INSERT returned no row — INSERT policy exists but SELECT policy is missing.'));
+    countEl.textContent = records.length;
+    if (records.length === 0) {
+      msg.textContent = 'No shapes saved yet. Be the first.';
+      msg.classList.remove('hidden');
     } else {
-      testId = data[0].id;
-      lines.push(ok(`INSERT works. Test row id: ${testId}`));
+      msg.classList.add('hidden');
     }
+
+    renderPooledView(idCanvas, records, ['identity', 'expression']);
+    renderPooledView(atCanvas, records, ['sexual', 'romantic']);
   } catch (err) {
-    lines.push(bad('INSERT failed.'));
-    lines.push(`       ${explainSupabaseError(err)}`);
-    lines.push(`       raw: ${err.code || '-'} ${err.message || ''}`);
-  }
-  paint();
-
-  // 4. Can we update? A missing UPDATE policy returns success with zero rows,
-  //    so editing an existing entry fails silently. This is the one that bites.
-  if (testId) {
-    try {
-      const { data, error } = await supabaseClient
-        .from(TABLE_NAME)
-        .update({ display_name: '__connection_test_updated__' })
-        .eq('id', testId)
-        .select('id');
-      if (error) throw error;
-      if (!data || !data.length) {
-        lines.push(bad('UPDATE matched zero rows — no UPDATE policy for anonymous users.'));
-        lines.push('       Editing a saved shape will silently do nothing until you add one.');
-      } else {
-        lines.push(ok('UPDATE works — editing saved shapes will persist.'));
-      }
-    } catch (err) {
-      lines.push(bad('UPDATE failed.'));
-      lines.push(`       ${explainSupabaseError(err)}`);
-    }
-    paint();
-
-    // 5. Tidy up after ourselves if DELETE is permitted
-    try {
-      const { error } = await supabaseClient.from(TABLE_NAME).delete().eq('id', testId);
-      if (error) throw error;
-      lines.push(ok('Test row cleaned up.'));
-    } catch {
-      lines.push(`       Note: could not auto-delete the test row (${testId}). Remove it manually.`);
-    }
-    paint();
+    console.error('World view failed:', err);
+    msg.textContent = explainSupabaseError(err);
+    msg.classList.remove('hidden');
   }
 }
 
