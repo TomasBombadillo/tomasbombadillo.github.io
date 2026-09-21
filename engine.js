@@ -142,15 +142,12 @@ function renderShape(canvas, peaks, opts = {}) {
   ctx.clearRect(0, 0, size, size);
 
   if (showGrid) {
-    ctx.beginPath();
-    ctx.arc(cx, cy, r, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(0,0,0,0.08)';
-    ctx.lineWidth = 1;
-    ctx.stroke();
+    // faint inner reference rings — fine if the data fill covers part of these
     [0.33, 0.66].forEach(level => {
       ctx.beginPath();
       ctx.arc(cx, cy, r * level, 0, Math.PI * 2);
       ctx.strokeStyle = 'rgba(0,0,0,0.04)';
+      ctx.lineWidth = 1;
       ctx.stroke();
     });
   }
@@ -174,6 +171,18 @@ function renderShape(canvas, peaks, opts = {}) {
     ctx.lineWidth = Math.max(1, size / 128);
     ctx.strokeStyle = 'rgba(217,119,6,0.9)';
     ctx.stroke(blobPath);
+  }
+
+  // Outer limit ring — drawn last, on top of the fill, so it's always a
+  // complete unbroken circle rather than getting painted over wherever the
+  // data reaches the edge. Amber reads on both the pale editor background
+  // and the dark world-view backgrounds.
+  if (showGrid) {
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(217,119,6,0.35)';
+    ctx.lineWidth = 0.75;
+    ctx.stroke();
   }
 
   if (showLabels) {

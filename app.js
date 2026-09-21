@@ -390,19 +390,24 @@ function highlightWorldUser(rec) {
   document.getElementById('worldIdentitiesBase').style.opacity = '0.22';
   document.getElementById('worldAttractionsBase').style.opacity = '0.22';
 
-  renderShape(document.getElementById('worldIdentitiesOverlay'), personPool(rec, ID_DIMS),
-    { labels: false, grid: false, palette: VIRIDIS });
-  renderShape(document.getElementById('worldAttractionsOverlay'), personPool(rec, AT_DIMS),
-    { labels: false, grid: false, palette: INFERNO });
+  const idOverlay = document.getElementById('worldIdentitiesOverlay');
+  const atOverlay = document.getElementById('worldAttractionsOverlay');
+
+  renderShape(idOverlay, personPool(rec, ID_DIMS), { labels: false, grid: false, palette: VIRIDIS });
+  renderShape(atOverlay, personPool(rec, AT_DIMS), { labels: false, grid: false, palette: INFERNO });
+
+  // The pixels are drawn instantly; fading the canvas element's own opacity
+  // in (see .canvas-stack canvas:last-child in styles.css) is what makes it
+  // bloom in gently instead of popping into view.
+  idOverlay.style.opacity = '1';
+  atOverlay.style.opacity = '1';
 }
 
 function clearWorldHighlight() {
   document.getElementById('worldIdentitiesBase').style.opacity = '1';
   document.getElementById('worldAttractionsBase').style.opacity = '1';
-  ['worldIdentitiesOverlay', 'worldAttractionsOverlay'].forEach(id => {
-    const c = document.getElementById(id);
-    c.getContext('2d').clearRect(0, 0, c.width, c.height);
-  });
+  document.getElementById('worldIdentitiesOverlay').style.opacity = '0';
+  document.getElementById('worldAttractionsOverlay').style.opacity = '0';
 }
 
 const worldNamesEl = document.getElementById('worldNames');
