@@ -25,10 +25,22 @@ function showView(name) {
   document.querySelectorAll('.nav-item').forEach(b => {
     b.classList.toggle('active', b.dataset.view === name);
   });
+
+  // The world view is an immersive full-screen take with no sidebar —
+  // hide it and surface a small button to bring it back.
+  const isWorld = name === 'world';
+  document.querySelector('.sidebar').classList.toggle('hidden', isWorld);
+  document.getElementById('sidebarToggle').classList.toggle('hidden', !isWorld);
+
   if (name === 'editor') renderActiveView();
   if (name === 'world') loadWorld();
   window.scrollTo(0, 0);
 }
+
+document.getElementById('sidebarToggle').addEventListener('click', () => {
+  document.querySelector('.sidebar').classList.remove('hidden');
+  document.getElementById('sidebarToggle').classList.add('hidden');
+});
 
 document.getElementById('nav').addEventListener('click', e => {
   const btn = e.target.closest('.nav-item');
@@ -308,14 +320,20 @@ function loadRecord(record, editable) {
 }
 
 /* ---------- The world ---------- */
+const ID_DIMS = ['identity', 'expression'];
+const AT_DIMS = ['sexual', 'romantic'];
+let worldRecords = [];
+
 async function loadWorld() {
-  const idCanvas = document.getElementById('worldIdentitiesCanvas');
-  const atCanvas = document.getElementById('worldAttractionsCanvas');
+  const idBase = document.getElementById('worldIdentitiesBase');
+  const atBase = document.getElementById('worldAttractionsBase');
   const msg = document.getElementById('worldMsg');
   const countEl = document.getElementById('worldCount');
+  const namesEl = document.getElementById('worldNames');
 
   msg.textContent = 'Loading…';
   msg.classList.remove('hidden');
+  namesEl.innerHTML = '';
 
   if (!supabaseClient) {
     msg.textContent = 'Supabase library did not load.';
@@ -325,28 +343,94 @@ async function loadWorld() {
   try {
     const { data, error } = await supabaseClient
       .from(TABLE_NAME)
-      .select('shape')
+      .select('id, display_name, shape')
       .limit(500);
 
     if (error) throw error;
-    const records = data || [];
+    worldRecords = data || [];
 
-    countEl.textContent = records.length;
-    if (records.length === 0) {
+    countEl.textContent = worldRecords.length;
+    if (worldRecords.length === 0) {
       msg.textContent = 'No shapes saved yet. Be the first.';
       msg.classList.remove('hidden');
     } else {
       msg.classList.add('hidden');
     }
 
-    renderPooledView(idCanvas, records, ['identity', 'expression']);
-    renderPooledView(atCanvas, records, ['sexual', 'romantic']);
+    renderPooledView(idBase, worldRecords, ID_DIMS, VIRIDIS);
+    renderPooledView(atBase, worldRecords, AT_DIMS, INFERNO);
+    renderWorldNames();
   } catch (err) {
     console.error('World view failed:', err);
     msg.textContent = explainSupabaseError(err);
     msg.classList.remove('hidden');
   }
 }
+
+function renderWorldNames() {
+  const namesEl = document.getElementById('worldNames');
+  namesEl.innerHTML = '';
+
+  if (worldRecords.length === 0) {
+    namesEl.innerHTML = '<p class="world-empty">No one yet.</p>';
+    return;
+  }
+
+  worldRecords.forEach((rec, i) => {
+    const item = document.createElement('button');
+    item.type = 'button';
+    item.className = 'world-name-item';
+    item.dataset.idx = i;
+    item.textContent = rec.display_name || 'Anonymous';
+    namesEl.appendChild(item);
+  });
+}
+
+function highlightWorldUser(rec) {
+  document.getElementById('worldIdentitiesBase').style.opacity = '0.22';
+  document.getElementById('worldAttractionsBase').style.opacity = '0.22';
+
+  renderShape(document.getElementById('worldIdentitiesOverlay'), personPool(rec, ID_DIMS),
+    { labels: false, grid: false, palette: VIRIDIS });
+  renderShape(document.getElementById('worldAttractionsOverlay'), personPool(rec, AT_DIMS),
+    { labels: false, grid: false, palette: INFERNO });
+}
+
+function clearWorldHighlight() {
+  document.getElementById('worldIdentitiesBase').style.opacity = '1';
+  document.getElementById('worldAttractionsBase').style.opacity = '1';
+  ['worldIdentitiesOverlay', 'worldAttractionsOverlay'].forEach(id => {
+    const c = document.getElementById(id);
+    c.getContext('2d').clearRect(0, 0, c.width, c.height);
+  });
+}
+
+const worldNamesEl = document.getElementById('worldNames');
+
+worldNamesEl.addEventListener('mouseover', e => {
+  const item = e.target.closest('.world-name-item');
+  if (!item) return;
+  const rec = worldRecords[Number(item.dataset.idx)];
+  if (rec) highlightWorldUser(rec);
+});
+
+worldNamesEl.addEventListener('mouseout', e => {
+  const item = e.target.closest('.world-name-item');
+  if (!item) return;
+  if (item.contains(e.relatedTarget)) return; // still inside the same item
+  clearWorldHighlight();
+});
+
+worldNamesEl.addEventListener('click', e => {
+  const item = e.target.closest('.world-name-item');
+  if (!item) return;
+  const rec = worldRecords[Number(item.dataset.idx)];
+  if (!rec) return;
+  clearWorldHighlight();
+  loadRecord(rec, false);
+  showView('editor');
+  showToast(toastEl, `Opened ${rec.display_name || 'this'} shape as a starting point. Saving creates your own entry.`, false);
+});
 
 /* ---------- Boot ---------- */
 appData = freshData();

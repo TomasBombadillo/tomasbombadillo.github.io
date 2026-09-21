@@ -97,21 +97,33 @@
 
     <!-- The world -->
     <section id="view-world" class="view hidden">
-      <div class="card">
+      <button id="sidebarToggle" class="sidebar-toggle hidden" type="button" aria-label="Show menu">☰</button>
+
+      <div class="world-header">
         <h1>The world</h1>
-        <p class="sub-title">Every saved shape pooled together — <span id="worldCount">0</span> people so far.</p>
-        <p id="worldMsg" class="grid-msg hidden"></p>
+        <p><span id="worldCount">0</span> people so far</p>
+        <p id="worldMsg" class="world-msg hidden"></p>
       </div>
-      <div class="world-split">
-        <div class="world-pane">
-          <h2>Identities</h2>
-          <p class="pane-sub">Identity + Expression, everyone pooled together</p>
-          <canvas id="worldIdentitiesCanvas" width="420" height="420"></canvas>
+
+      <div class="world-stage">
+        <div class="world-half world-half-identities">
+          <div class="world-graph">
+            <div class="canvas-stack">
+              <canvas id="worldIdentitiesBase" width="480" height="480"></canvas>
+              <canvas id="worldIdentitiesOverlay" width="480" height="480"></canvas>
+            </div>
+            <p class="pane-label">Identities</p>
+          </div>
         </div>
-        <div class="world-pane">
-          <h2>Attractions</h2>
-          <p class="pane-sub">Sexual + Romantic attraction, everyone pooled together</p>
-          <canvas id="worldAttractionsCanvas" width="420" height="420"></canvas>
+        <div class="world-half world-half-attractions">
+          <div class="world-graph">
+            <div class="canvas-stack">
+              <canvas id="worldAttractionsBase" width="480" height="480"></canvas>
+              <canvas id="worldAttractionsOverlay" width="480" height="480"></canvas>
+            </div>
+            <p class="pane-label">Attractions</p>
+          </div>
+          <div id="worldNames" class="world-names"></div>
         </div>
       </div>
     </section>

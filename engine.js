@@ -18,13 +18,19 @@ const VIRIDIS = [
   [122, 209, 81], [189, 223, 38], [253, 231, 37]
 ];
 
-function getViridisColor(val) {
+// Standard matplotlib "inferno" reference stops, 9-point approximation.
+const INFERNO = [
+  [0, 0, 4], [27, 12, 66], [75, 12, 107], [120, 28, 109],
+  [165, 44, 96], [207, 68, 70], [237, 105, 37], [251, 155, 6], [252, 255, 164]
+];
+
+function sampleColormap(val, palette) {
   val = Math.max(0, Math.min(1, val));
-  const idx = val * (VIRIDIS.length - 1);
+  const idx = val * (palette.length - 1);
   const i = Math.floor(idx);
   const f = idx - i;
-  if (i >= VIRIDIS.length - 1) return VIRIDIS[VIRIDIS.length - 1];
-  const c1 = VIRIDIS[i], c2 = VIRIDIS[i + 1];
+  if (i >= palette.length - 1) return palette[palette.length - 1];
+  const c1 = palette[i], c2 = palette[i + 1];
   return [
     Math.round(c1[0] + (c2[0] - c1[0]) * f),
     Math.round(c1[1] + (c2[1] - c1[1]) * f),
@@ -76,7 +82,7 @@ function createBlobPath(geo, maxM, maxF, maxO) {
   return path;
 }
 
-function generateDensityHeatmap(geo, peaks) {
+function generateDensityHeatmap(geo, peaks, palette) {
   const { size, cx, cy, r } = geo;
   const surface = heatSurfaceFor(size);
   const data = surface.img.data;
@@ -109,7 +115,7 @@ function generateDensityHeatmap(geo, peaks) {
         density += p.weight * Math.exp(-(dx * dx + dy * dy) / TWO_SIGMA_SQ);
       }
       density = Math.min(1, density * 1.5);
-      const rgb = getViridisColor(density);
+      const rgb = sampleColormap(density, palette);
       data[i++] = rgb[0]; data[i++] = rgb[1]; data[i++] = rgb[2]; data[i++] = 255;
     }
   }
@@ -118,10 +124,15 @@ function generateDensityHeatmap(geo, peaks) {
 }
 
 /* Draw one characteristic's peaks onto any canvas.
-   opts.labels — draw the Masc/Fem/Other axis labels (off for thumbnails) */
+   opts.labels  — draw the Masc/Fem/Other axis labels (off for thumbnails/overlays)
+   opts.grid    — draw the faint reference rings (off for overlays, so the dimmed
+                  base's grid shows through instead of a doubled-up ring)
+   opts.palette — VIRIDIS (default) or INFERNO; also used for the blob's pre-fill */
 function renderShape(canvas, peaks, opts = {}) {
   if (!canvas) return;
   const showLabels = opts.labels !== false;
+  const showGrid = opts.grid !== false;
+  const palette = opts.palette || VIRIDIS;
   const size = canvas.width;
   const geo = geometryFor(size);
   const { cx, cy, r } = geo;
@@ -130,18 +141,19 @@ function renderShape(canvas, peaks, opts = {}) {
 
   ctx.clearRect(0, 0, size, size);
 
-  // grid
-  ctx.beginPath();
-  ctx.arc(cx, cy, r, 0, Math.PI * 2);
-  ctx.strokeStyle = 'rgba(0,0,0,0.08)';
-  ctx.lineWidth = 1;
-  ctx.stroke();
-  [0.33, 0.66].forEach(level => {
+  if (showGrid) {
     ctx.beginPath();
-    ctx.arc(cx, cy, r * level, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(0,0,0,0.04)';
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(0,0,0,0.08)';
+    ctx.lineWidth = 1;
     ctx.stroke();
-  });
+    [0.33, 0.66].forEach(level => {
+      ctx.beginPath();
+      ctx.arc(cx, cy, r * level, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(0,0,0,0.04)';
+      ctx.stroke();
+    });
+  }
 
   const maxM = Math.max(...peaks.map(s => s.masc), 0);
   const maxF = Math.max(...peaks.map(s => s.fem), 0);
@@ -149,11 +161,12 @@ function renderShape(canvas, peaks, opts = {}) {
 
   if (maxM > 0 || maxF > 0 || maxO > 0) {
     const blobPath = createBlobPath(geo, maxM, maxF, maxO);
-    const heat = generateDensityHeatmap(geo, peaks);
+    const heat = generateDensityHeatmap(geo, peaks, palette);
+    const [lr, lg, lb] = palette[0];
 
     ctx.save();
     ctx.clip(blobPath);
-    ctx.fillStyle = '#440154';
+    ctx.fillStyle = `rgb(${lr},${lg},${lb})`;
     ctx.fill(blobPath);
     ctx.drawImage(heat, 0, 0);
     ctx.restore();
@@ -179,7 +192,7 @@ function renderShape(canvas, peaks, opts = {}) {
    how many people have saved a shape — otherwise density saturates
    solid within a handful of entries and all contrast is lost.
    ------------------------------------------------------------------ */
-function renderPooledView(canvas, records, dimIds) {
+function renderPooledView(canvas, records, dimIds, palette) {
   const n = records.length;
   const all = [];
   if (n > 0) {
@@ -191,5 +204,18 @@ function renderPooledView(canvas, records, dimIds) {
       });
     });
   }
-  renderShape(canvas, all, { labels: true });
+  renderShape(canvas, all, { labels: true, palette });
+}
+
+/* A single person's own pool for a dimension group, at full (undivided)
+   weight — used for the hover highlight, where we want just their
+   contribution shown at its natural strength, not diluted by the crowd. */
+function personPool(record, dimIds) {
+  const peaks = [];
+  dimIds.forEach(dimId => {
+    (record.shape?.[dimId] || []).forEach(p => {
+      peaks.push({ ...p, freq: p.freq / dimIds.length });
+    });
+  });
+  return peaks;
 }
