@@ -220,6 +220,7 @@ function showIdBanner(id) {
 function clearEditMode() {
   currentRecordId = null;
   document.getElementById('idBanner').classList.add('hidden');
+  document.getElementById('nameVisibleInput').checked = true;
   showToast(toastEl, 'Now creating a new entry. Saving will not touch the old one.', false);
 }
 
@@ -245,7 +246,11 @@ saveBtn.addEventListener('click', async () => {
   const isUpdate = !!currentRecordId;
 
   try {
-    const payload = { display_name: name, shape: buildShapePayload() };
+    const payload = {
+      display_name: name,
+      shape: buildShapePayload(),
+      name_visible: document.getElementById('nameVisibleInput').checked
+    };
 
     const result = isUpdate
       ? await supabaseClient.from(TABLE_NAME).update(payload).eq('id', currentRecordId).select('id')
@@ -315,6 +320,9 @@ function loadRecord(record, editable) {
   });
   if (editable) showIdBanner(record.id);
   else document.getElementById('idBanner').classList.add('hidden');
+  // editable: reflect what's actually stored (missing/undefined = visible, matching the DB default).
+  // not editable: this is a fresh entry being started, so default to visible regardless of the source shape.
+  document.getElementById('nameVisibleInput').checked = editable ? (record.name_visible !== false) : true;
   initTabs();
   renderActiveView();
 }
@@ -343,7 +351,7 @@ async function loadWorld() {
   try {
     const { data, error } = await supabaseClient
       .from(TABLE_NAME)
-      .select('id, display_name, shape')
+      .select('id, display_name, shape, name_visible')
       .limit(500);
 
     if (error) throw error;
@@ -376,7 +384,18 @@ function renderWorldNames() {
     return;
   }
 
-  worldRecords.forEach((rec, i) => {
+  // Hidden-name people still fully count toward the pooled graphs (see
+  // loadWorld) — this only controls whether they're listed here.
+  const visible = worldRecords
+    .map((rec, i) => ({ rec, i }))
+    .filter(({ rec }) => rec.name_visible !== false);
+
+  if (visible.length === 0) {
+    namesEl.innerHTML = '<p class="world-empty">Everyone here has chosen to stay unnamed.</p>';
+    return;
+  }
+
+  visible.forEach(({ rec, i }) => {
     const item = document.createElement('button');
     item.type = 'button';
     item.className = 'world-name-item';
