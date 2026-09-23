@@ -9,6 +9,12 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 const TABLE_NAME = 'shapes';
 
+// Address encoded in the "share this page" QR code. Leave empty to use
+// whatever URL the page is currently served from; set it (e.g.
+// 'https://tomasbombadillo.github.io/') if you want the QR to always point
+// at the public site, even while testing on localhost.
+const SITE_URL = '';
+
 // `supabase` is the UMD global from the CDN script tag in index.html.
 // Guarded so a blocked CDN degrades to "saving is off" instead of a blank page.
 const supabaseClient =
@@ -17,25 +23,27 @@ const supabaseClient =
     : null;
 
 /* Translates Postgres / PostgREST error codes into something actionable.
-   These three account for nearly every "it silently doesn't save" report. */
+   These three account for nearly every "it silently doesn't save" report.
+   Messages come from the active language (see locales/*.js). */
 function explainSupabaseError(err) {
-  if (!err) return 'Unknown error.';
+  if (!err) return t('err.unknown');
   const code = err.code || '';
+  const msg = err.message || '';
 
-  if (code === '42501' || /row-level security/i.test(err.message || '')) {
-    return 'Blocked by Row Level Security. The table exists but anonymous users are not allowed to write to it — you need an INSERT policy.';
+  if (code === '42501' || /row-level security/i.test(msg)) {
+    return t('err.rls');
   }
-  if (code === '42P01' || code === 'PGRST205' || /does not exist/i.test(err.message || '')) {
-    return `Table "${TABLE_NAME}" was not found in your database. Create it with the SQL in the setup notes.`;
+  if (code === '42P01' || code === 'PGRST205' || /does not exist/i.test(msg)) {
+    return t('err.noTable', { table: TABLE_NAME });
   }
-  if (code === 'PGRST204' || /column/i.test(err.message || '')) {
-    return 'A column in the table does not match what the app sends. Check that the table has display_name (text) and shape (jsonb).';
+  if (code === 'PGRST204' || /column/i.test(msg)) {
+    return t('err.column');
   }
   if (code === '22P02') {
-    return 'That ID is not a valid UUID.';
+    return t('err.uuid');
   }
-  if (/Failed to fetch|NetworkError/i.test(err.message || '')) {
-    return 'Could not reach Supabase at all. Check the project URL, your internet connection, and whether the project is paused.';
+  if (/Failed to fetch|NetworkError/i.test(msg)) {
+    return t('err.network');
   }
-  return err.message || 'Unknown error.';
+  return msg || t('err.unknown');
 }

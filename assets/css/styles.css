@@ -71,6 +71,79 @@ nav { display: flex; flex-direction: column; gap: 4px; }
 .nav-item.active { background: var(--ink); color: #fff; }
 .nav-ico { font-size: 12px; opacity: 0.8; }
 
+/* Close button: only exists visually while the sidebar is an overlay drawer */
+.sidebar-close {
+  display: none;
+  position: absolute; top: 12px; right: 12px;
+  width: 32px; height: 32px;
+  align-items: center; justify-content: center;
+  border: none; border-radius: 50%;
+  background: var(--paper); color: var(--ink);
+  font-size: 14px; line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.sidebar-close:hover { background: var(--ink); color: #fff; }
+
+/* Overlay drawer (The world view) — fixed above everything else on the page */
+.sidebar.is-overlay {
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  width: min(260px, 84vw);
+  height: 100vh; height: 100dvh;
+  z-index: 40;
+  box-shadow: 12px 0 40px rgba(0,0,0,0.4);
+  animation: drawer-in 0.22s ease-out;
+}
+.sidebar.is-overlay .sidebar-close { display: flex; }
+.sidebar.is-overlay .brand { padding-right: 38px; }
+@keyframes drawer-in { from { transform: translateX(-100%); } to { transform: none; } }
+
+.sidebar-scrim {
+  position: fixed; inset: 0;
+  z-index: 39;
+  background: rgba(10,5,3,0.5);
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+}
+
+.lang-toggle {
+  display: inline-flex; padding: 3px;
+  background: var(--paper);
+  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 999px;
+}
+.lang-toggle button {
+  border: none; background: transparent;
+  padding: 6px 11px; border-radius: 999px;
+  font: 700 11.5px/1 var(--font-body);
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.lang-toggle button:hover { color: var(--ink); }
+.lang-toggle button.active { background: var(--ink); color: #fff; }
+
+.icon-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 36px; height: 36px; flex-shrink: 0;
+  border: 1px solid rgba(0,0,0,0.1); border-radius: 50%;
+  background: var(--card-bg); color: var(--ink-soft);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.icon-btn:hover { color: var(--accent); border-color: var(--accent); }
+
+.sidebar button:focus-visible,
+.sidebar-open:focus-visible,
+.share-dialog button:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 2px;
+}
+
 .link-btn {
   background: none; border: none; padding: 0;
   color: var(--ink-soft); font-size: 12px;
@@ -318,6 +391,52 @@ input[type=range] { width: 100%; cursor: pointer; }
 }
 .btn-add-peak:hover { background: var(--paper); color: var(--ink); }
 
+/* ---------- Share dialog ---------- */
+.btn-ghost {
+  padding: 10px 20px; font-size: 14px; font-weight: 600;
+  background: transparent; color: var(--ink);
+  border: 1px solid rgba(0,0,0,0.18); border-radius: 8px; cursor: pointer;
+  font-family: var(--font-body);
+  transition: border-color 0.15s, color 0.15s;
+}
+.btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+.btn-ghost:disabled { opacity: 0.6; cursor: default; }
+
+.share-dialog {
+  border: none; border-radius: var(--radius);
+  padding: 22px 24px 20px;
+  width: min(340px, calc(100vw - 32px));
+  background: var(--card-bg); color: var(--ink);
+  box-shadow: 0 24px 60px -12px rgba(0,0,0,0.45);
+  font-family: var(--font-body);
+}
+.share-dialog::backdrop { background: rgba(20,20,28,0.55); backdrop-filter: blur(3px); }
+.share-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.share-head h2 { margin: 0; font-size: 17px; }
+.share-close {
+  width: 30px; height: 30px; border: none; border-radius: 50%;
+  background: var(--paper); color: var(--ink);
+  font-size: 13px; cursor: pointer; flex-shrink: 0;
+}
+.share-close:hover { background: var(--ink); color: #fff; }
+.share-hint { margin: 6px 0 14px; font-size: 13px; color: var(--ink-soft); }
+.share-qr {
+  display: block; margin: 0 auto 14px;
+  width: 224px; height: 224px; max-width: 100%;
+  border: 1px solid rgba(0,0,0,0.1); border-radius: 10px;
+  background: #fff;
+}
+.share-url {
+  width: 100%; padding: 9px 12px; margin-bottom: 12px;
+  font: 12.5px var(--font-body); color: var(--ink-soft);
+  background: var(--paper);
+  border: 1px solid rgba(0,0,0,0.1); border-radius: 8px;
+  text-overflow: ellipsis;
+}
+.share-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.share-actions > button { flex: 1 1 auto; padding-inline: 12px; }
+.share-status { min-height: 1.3em; margin: 10px 0 0; font-size: 12.5px; color: var(--ink-soft); }
+
 /* ---------- The world ---------- */
 #view-world {
   position: fixed;
@@ -336,7 +455,9 @@ input[type=range] { width: 100%; cursor: pointer; }
     linear-gradient(to right, #33083f 0%, #33083f 50%, #0a0503 50%, #0a0503 100%);
 }
 
-.sidebar-toggle {
+/* Opens the sidebar drawer while in the world view (lives at <body> level in
+   the HTML, so no stacking context can bury it). */
+.sidebar-open {
   position: fixed;
   top: 18px; left: 18px;
   z-index: 30;
@@ -349,7 +470,7 @@ input[type=range] { width: 100%; cursor: pointer; }
   font-size: 16px;
   cursor: pointer;
 }
-.sidebar-toggle:hover { background: rgba(255,255,255,0.2); }
+.sidebar-open:hover { background: rgba(255,255,255,0.2); }
 
 .world-header {
   text-align: center;
@@ -439,6 +560,31 @@ input[type=range] { width: 100%; cursor: pointer; }
   .hero h1 { font-size: 26px; }
   .slider-row { grid-template-columns: 92px 1fr 36px; }
 
+  /* Top bar in two rows: brand + language/share on top, nav scrolling below,
+     so the controls are never pushed off-screen. */
+  .sidebar { flex-wrap: wrap; overflow-x: visible; row-gap: 10px; }
+  .brand { order: 1; margin-right: auto; }
+  .brand strong { white-space: nowrap; }
+  .sidebar-footer { order: 2; margin-top: 0; margin-left: 0; gap: 8px; }
+  .sidebar nav { order: 3; flex: 1 1 100%; overflow-x: auto; }
+
+  /* …but in the world view the sidebar is still a vertical drawer */
+  .sidebar.is-overlay {
+    width: min(260px, 84vw);
+    height: 100vh; height: 100dvh;
+    flex-direction: column; align-items: stretch; gap: 24px;
+    padding: 22px 16px; overflow-x: hidden; overflow-y: auto;
+    border-bottom: none;
+  }
+  .sidebar.is-overlay { flex-wrap: nowrap; row-gap: 24px; }
+  .sidebar.is-overlay .brand,
+  .sidebar.is-overlay .sidebar-footer,
+  .sidebar.is-overlay nav { order: 0; }
+  .sidebar.is-overlay nav { flex: 0 0 auto; flex-direction: column; overflow-x: visible; }
+  .sidebar.is-overlay .brand-sub { display: block; }
+  .sidebar.is-overlay .nav-item { padding: 10px 12px; font-size: 14px; }
+  .sidebar.is-overlay .sidebar-footer { margin-top: auto; margin-left: 0; }
+
   .world-stage { flex-direction: column; }
   .world-half { flex-direction: column; padding: 20px; gap: 16px; }
   .canvas-stack { width: min(70vw, 36vh, 340px); }
@@ -453,5 +599,5 @@ input[type=range] { width: 100%; cursor: pointer; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  * { transition: none !important; }
+  * { transition: none !important; animation: none !important; }
 }

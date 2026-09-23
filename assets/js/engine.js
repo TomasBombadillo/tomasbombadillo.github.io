@@ -4,12 +4,14 @@
    draws a 320px editor view and a 120px gallery thumbnail.
    ------------------------------------------------------------------ */
 
+// Titles and descriptions are looked up in the active language:
+// t(`char.${id}.title`) / t(`char.${id}.desc`) — see locales/*.js
 const CHARACTERISTICS = [
-  { id: 'identity',   title: 'Gender Identity',    desc: 'Internal sense of self' },
-  { id: 'expression', title: 'Gender Expression',  desc: 'Outward presentation and behavior' },
-  { id: 'sex',        title: 'Anatomical Sex',     desc: 'Physical traits and sex characteristics' },
-  { id: 'romantic',   title: 'Romantic Attraction',desc: 'Direction of romantic desires' },
-  { id: 'sexual',     title: 'Sexual Attraction',  desc: 'Direction of physical/sexual desires' }
+  { id: 'identity' },
+  { id: 'expression' },
+  { id: 'sex' },
+  { id: 'romantic' },
+  { id: 'sexual' }
 ];
 
 const VIRIDIS = [
@@ -188,9 +190,9 @@ function renderShape(canvas, peaks, opts = {}) {
   if (showLabels) {
     ctx.font = 'bold 12px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillStyle = '#2563eb'; ctx.fillText('Masc', cx, cy - r - 12);
-    ctx.fillStyle = '#ec4899'; ctx.fillText('Fem', cx + r * 0.866 + 18, cy + r * 0.5 + 16);
-    ctx.fillStyle = '#10b981'; ctx.fillText('Other', cx - r * 0.866 - 18, cy + r * 0.5 + 16);
+    ctx.fillStyle = '#2563eb'; ctx.fillText(t('canvas.masc'), cx, cy - r - 12);
+    ctx.fillStyle = '#ec4899'; ctx.fillText(t('canvas.fem'), cx + r * 0.866 + 18, cy + r * 0.5 + 16);
+    ctx.fillStyle = '#10b981'; ctx.fillText(t('canvas.other'), cx - r * 0.866 - 18, cy + r * 0.5 + 16);
   }
 }
 

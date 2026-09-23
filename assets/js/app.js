@@ -7,16 +7,47 @@ let currentRecordId = null;   // set once saved / loaded — enables editing
 let peakSeq = 1;
 let appData;                  // assigned after freshData is safe to call
 
+/* Default peak names ("Peak 3" / "Pico 3") follow the active language.
+   Names the user typed themselves are never touched. */
+const DEFAULT_PEAK_NAME = /^(Peak|Pico) (\d+)$/;
+
+function localizePeakName(name) {
+  const m = DEFAULT_PEAK_NAME.exec(name || '');
+  return m ? `${t('peak.prefix')} ${m[2]}` : name;
+}
+
 function freshData() {
   const d = {};
   CHARACTERISTICS.forEach(c => {
-    d[c.id] = [{ id: `p${peakSeq++}`, name: 'Peak 1', masc: 80, fem: 20, otro: 10, freq: 100 }];
+    d[c.id] = [{ id: `p${peakSeq++}`, name: `${t('peak.prefix')} 1`, masc: 80, fem: 20, otro: 10, freq: 100 }];
   });
   return d;
 }
 
 /* ---------- Routing ---------- */
 const views = ['home', 'editor', 'lookup', 'world', 'inspiration'];
+
+const sidebarEl    = document.getElementById('sidebar');
+const sidebarOpen  = document.getElementById('sidebarOpen');
+const sidebarClose = document.getElementById('sidebarClose');
+const sidebarScrim = document.getElementById('sidebarScrim');
+let worldMode = false;
+
+/* The world view is immersive and full-screen, so there the sidebar becomes
+   an overlay drawer: closed by default, opened with the ☰ button, closed with
+   the ✕ inside the drawer (or the backdrop / Esc key).
+   In every other view the sidebar is just a normal column. */
+function setSidebarOpen(open) {
+  sidebarEl.classList.toggle('hidden', worldMode && !open);
+  sidebarScrim.classList.toggle('hidden', !(worldMode && open));
+  sidebarOpen.classList.toggle('hidden', !(worldMode && !open));
+}
+
+function setWorldMode(on) {
+  worldMode = on;
+  sidebarEl.classList.toggle('is-overlay', on);
+  setSidebarOpen(!on);
+}
 
 function showView(name) {
   views.forEach(v => {
@@ -26,43 +57,62 @@ function showView(name) {
     b.classList.toggle('active', b.dataset.view === name);
   });
 
-  // The world view is an immersive full-screen take with no sidebar —
-  // hide it and surface a small button to bring it back.
-  const isWorld = name === 'world';
-  const sidebarToggle = document.getElementById('sidebarToggle');
-  document.querySelector('.sidebar').classList.toggle('hidden', isWorld);
-  sidebarToggle.classList.toggle('hidden', !isWorld);
-  if (isWorld) {
-    // Always start closed when (re-)entering, regardless of how a previous visit was left.
-    sidebarToggle.textContent = '☰';
-    sidebarToggle.setAttribute('aria-label', 'Show menu');
-  }
+  setWorldMode(name === 'world');
 
   if (name === 'editor') renderActiveView();
   if (name === 'world') loadWorld();
   window.scrollTo(0, 0);
 }
 
-// A real open/close toggle, not a one-way reveal — otherwise there's no way
-// back to the immersive view short of leaving and re-entering it.
-document.getElementById('sidebarToggle').addEventListener('click', () => {
-  const sidebar = document.querySelector('.sidebar');
-  const toggle = document.getElementById('sidebarToggle');
-  const nowHidden = sidebar.classList.toggle('hidden');
-  toggle.textContent = nowHidden ? '☰' : '✕';
-  toggle.setAttribute('aria-label', nowHidden ? 'Show menu' : 'Hide menu');
+sidebarOpen.addEventListener('click', () => {
+  setSidebarOpen(true);
+  sidebarClose.focus();
 });
 
-document.getElementById('nav').addEventListener('click', e => {
-  const btn = e.target.closest('.nav-item');
-  if (btn) showView(btn.dataset.view);
+function closeDrawer() {
+  setSidebarOpen(false);
+  sidebarOpen.focus();
+}
+sidebarClose.addEventListener('click', closeDrawer);
+sidebarScrim.addEventListener('click', closeDrawer);
+
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape' || !worldMode) return;
+  if (document.querySelector('dialog[open]')) return;        // the share dialog handles its own Esc
+  if (!sidebarEl.classList.contains('hidden')) closeDrawer();
 });
 
-document.querySelectorAll('.hero-card, .view-link').forEach(el => {
-  el.addEventListener('click', () => showView(el.dataset.view));
+// One delegated listener for every element that navigates (sidebar items,
+// home cards, inline "more on that" links) — it survives re-translation,
+// which replaces the inner HTML of some of those elements.
+document.addEventListener('click', e => {
+  const el = e.target.closest('[data-view]');
+  if (el) showView(el.dataset.view);
 });
 
 document.getElementById('startBtn').addEventListener('click', () => showView('editor'));
+
+/* ---------- Language toggle ---------- */
+document.querySelectorAll('[data-lang]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (btn.dataset.lang !== I18N.lang) setLang(btn.dataset.lang);
+  });
+});
+
+// Static text was already re-translated by setLang(); this re-renders
+// everything that JavaScript builds on its own.
+document.addEventListener('langchange', () => {
+  if (!appData) return;   // first call, before boot has finished
+
+  CHARACTERISTICS.forEach(c => {
+    appData[c.id].forEach(p => { p.name = localizePeakName(p.name); });
+  });
+  initTabs();
+  renderActiveView();
+  if (currentRecordId) showIdBanner(currentRecordId);
+  renderWorldChrome();
+  renderWorldCanvases();
+});
 
 /* ---------- Editor UI ---------- */
 function initTabs() {
@@ -71,7 +121,7 @@ function initTabs() {
   CHARACTERISTICS.forEach(c => {
     const btn = document.createElement('button');
     btn.className = `dim-tab ${c.id === currentTab ? 'active' : ''}`;
-    btn.innerText = c.title;
+    btn.innerText = t(`char.${c.id}.title`);
     btn.onclick = () => { currentTab = c.id; initTabs(); renderActiveView(); };
     tabsContainer.appendChild(btn);
   });
@@ -79,12 +129,11 @@ function initTabs() {
 
 function renderActiveView() {
   const container = document.getElementById('activeCharCard');
-  const char = CHARACTERISTICS.find(c => c.id === currentTab);
   container.innerHTML = `
     <div class="char-card">
       <div class="char-card-header">
-        <h2>${char.title}</h2>
-        <p>${char.desc}</p>
+        <h2>${escapeHtml(t(`char.${currentTab}.title`))}</h2>
+        <p>${escapeHtml(t(`char.${currentTab}.desc`))}</p>
       </div>
       <div class="char-body">
         <div class="chart-panel">
@@ -92,7 +141,7 @@ function renderActiveView() {
         </div>
         <div class="controls-panel">
           <div id="peaks-list"></div>
-          <button class="btn-add-peak" onclick="addPeak()">+ Add Peak</button>
+          <button class="btn-add-peak" onclick="addPeak()">${escapeHtml(t('peak.add'))}</button>
         </div>
       </div>
     </div>
@@ -122,12 +171,12 @@ function renderPeaksList() {
       <div class="peak-card-header">
         <input type="text" class="peak-name-input" value="${escapeHtml(st.name)}"
                oninput="updatePeakName('${st.id}', this.value)">
-        ${peaks.length > 1 ? `<button class="btn-remove" onclick="removePeak('${st.id}')">Remove</button>` : ''}
+        ${peaks.length > 1 ? `<button class="btn-remove" onclick="removePeak('${st.id}')">${escapeHtml(t('peak.remove'))}</button>` : ''}
       </div>
-      ${sliderRow(st, 'freq', 'Weight / Time', 'dot-freq', true)}
-      ${sliderRow(st, 'masc', 'Masculine', 'dot-masc')}
-      ${sliderRow(st, 'fem', 'Feminine', 'dot-fem')}
-      ${sliderRow(st, 'otro', 'Other', 'dot-otro')}
+      ${sliderRow(st, 'freq', t('peak.weight'), 'dot-freq', true)}
+      ${sliderRow(st, 'masc', t('peak.masc'), 'dot-masc')}
+      ${sliderRow(st, 'fem', t('peak.fem'), 'dot-fem')}
+      ${sliderRow(st, 'otro', t('peak.other'), 'dot-otro')}
     `;
     listContainer.appendChild(peakCard);
   });
@@ -136,7 +185,7 @@ function renderPeaksList() {
 function sliderRow(st, key, label, dotClass, isPct) {
   return `
     <div class="slider-row">
-      <label><span class="dot ${dotClass}"></span> ${label}</label>
+      <label><span class="dot ${dotClass}"></span> ${escapeHtml(label)}</label>
       <input type="range" min="0" max="100" value="${st[key]}"
              oninput="updatePeakSlider('${st.id}', '${key}', this)">
       <span class="val-display" id="val-${st.id}-${key}">${st[key]}${isPct ? '%' : ''}</span>
@@ -170,7 +219,7 @@ window.addPeak = function () {
   const currentSum = peaks.reduce((a, p) => a + p.freq, 0);
   peaks.push({
     id: `p${peakSeq++}`,
-    name: `Peak ${peaks.length + 1}`,
+    name: `${t('peak.prefix')} ${peaks.length + 1}`,
     masc: 50, fem: 50, otro: 10,
     freq: Math.max(0, 100 - currentSum)
   });
@@ -211,19 +260,19 @@ function showIdBanner(id) {
   const banner = document.getElementById('idBanner');
   banner.innerHTML = `
     <div class="banner-line">
-      <strong>Editing an existing entry.</strong>
-      Saving will overwrite it.
+      <strong>${escapeHtml(t('banner.editing'))}</strong>
+      ${escapeHtml(t('banner.overwrite'))}
     </div>
     <div class="banner-line">
-      <span>ID:</span> <code>${escapeHtml(id)}</code>
-      <button class="link-btn" id="copyIdBtn" type="button">copy</button>
-      <button class="link-btn" id="newShapeBtn" type="button">start a new shape instead</button>
+      <span>${escapeHtml(t('banner.id'))}</span> <code>${escapeHtml(id)}</code>
+      <button class="link-btn" id="copyIdBtn" type="button">${escapeHtml(t('banner.copy'))}</button>
+      <button class="link-btn" id="newShapeBtn" type="button">${escapeHtml(t('banner.newShape'))}</button>
     </div>`;
   banner.classList.remove('hidden');
 
   document.getElementById('copyIdBtn').onclick = () => {
     navigator.clipboard?.writeText(id);
-    document.getElementById('copyIdBtn').innerText = 'copied';
+    document.getElementById('copyIdBtn').innerText = t('banner.copied');
   };
   document.getElementById('newShapeBtn').onclick = clearEditMode;
 }
@@ -232,7 +281,7 @@ function clearEditMode() {
   currentRecordId = null;
   document.getElementById('idBanner').classList.add('hidden');
   document.getElementById('nameVisibleInput').checked = true;
-  showToast(toastEl, 'Now creating a new entry. Saving will not touch the old one.', false);
+  showToast(toastEl, t('toast.newMode'), false);
 }
 
 const saveBtn = document.getElementById('saveBtn');
@@ -241,18 +290,17 @@ const toastEl = document.getElementById('toast');
 saveBtn.addEventListener('click', async () => {
   const name = document.getElementById('displayNameInput').value.trim();
   if (!name) {
-    showToast(toastEl, 'Please enter a display name first.', true);
+    showToast(toastEl, t('toast.needName'), true);
     document.getElementById('displayNameInput').focus();
     return;
   }
   if (!supabaseClient) {
-    showToast(toastEl, 'Supabase library did not load. Check your connection and reload.', true);
+    showToast(toastEl, t('toast.noLibSave'), true);
     return;
   }
 
   saveBtn.disabled = true;
-  const label = saveBtn.innerText;
-  saveBtn.innerText = 'Saving…';
+  saveBtn.innerText = t('editor.saving');
 
   const isUpdate = !!currentRecordId;
 
@@ -271,25 +319,18 @@ saveBtn.addEventListener('click', async () => {
 
     // No error + no rows is RLS filtering, not success. The cause differs by path.
     if (!result.data || result.data.length === 0) {
-      if (isUpdate) {
-        throw new Error(
-          'Update matched zero rows — nothing was written. The table is missing an UPDATE policy for anonymous users (see setup.sql). Use "Save as new" below to store this as a fresh entry instead.'
-        );
-      }
-      throw new Error(
-        'The row was written but could not be read back. Add a SELECT policy for anonymous users so the app can return your ID.'
-      );
+      throw new Error(isUpdate ? t('toast.updateZero') : t('toast.noReadback'));
     }
 
     currentRecordId = result.data[0].id;
     showIdBanner(currentRecordId);
-    showToast(toastEl, isUpdate ? 'Updated your existing shape.' : 'Saved. Your shape is now in the gallery.', false);
+    showToast(toastEl, isUpdate ? t('toast.updated') : t('toast.saved'), false);
   } catch (err) {
     console.error('Save failed:', err);
     showToast(toastEl, explainSupabaseError(err), true);
   } finally {
     saveBtn.disabled = false;
-    saveBtn.innerText = label;
+    saveBtn.innerText = t('editor.save');
   }
 });
 
@@ -298,19 +339,19 @@ const lookupMsg = document.getElementById('lookupMsg');
 
 document.getElementById('loadBtn').addEventListener('click', async () => {
   const id = document.getElementById('uuidInput').value.trim();
-  if (!id) { showToast(lookupMsg, 'Paste an ID first.', true); return; }
-  if (!supabaseClient) { showToast(lookupMsg, 'Supabase library did not load.', true); return; }
+  if (!id) { showToast(lookupMsg, t('toast.pasteId'), true); return; }
+  if (!supabaseClient) { showToast(lookupMsg, t('toast.noLib'), true); return; }
 
   try {
     const { data, error } = await supabaseClient
-      .from(TABLE_NAME).select('id, display_name, shape').eq('id', id).maybeSingle();
+      .from(TABLE_NAME).select('id, display_name, shape, name_visible').eq('id', id).maybeSingle();
 
     if (error) throw error;
-    if (!data) { showToast(lookupMsg, 'No shape found with that ID.', true); return; }
+    if (!data) { showToast(lookupMsg, t('toast.notFound'), true); return; }
 
     loadRecord(data, true);
     showView('editor');
-    showToast(toastEl, `Loaded ${data.display_name}'s shape. Saving will update it.`, false);
+    showToast(toastEl, t('toast.loaded', { name: data.display_name }), false);
   } catch (err) {
     console.error('Lookup failed:', err);
     showToast(lookupMsg, explainSupabaseError(err), true);
@@ -326,7 +367,7 @@ function loadRecord(record, editable) {
   CHARACTERISTICS.forEach(c => {
     const peaks = record.shape?.[c.id];
     if (Array.isArray(peaks) && peaks.length) {
-      appData[c.id] = peaks.map(p => ({ ...p, id: `p${peakSeq++}` }));
+      appData[c.id] = peaks.map(p => ({ ...p, name: localizePeakName(p.name), id: `p${peakSeq++}` }));
     }
   });
   if (editable) showIdBanner(record.id);
@@ -342,20 +383,17 @@ function loadRecord(record, editable) {
 const ID_DIMS = ['identity', 'expression'];
 const AT_DIMS = ['sexual', 'romantic'];
 let worldRecords = [];
+let worldStatus = 'idle';     // idle | loading | nolib | error | ready
+let worldError = null;
 
 async function loadWorld() {
-  const idBase = document.getElementById('worldIdentitiesBase');
-  const atBase = document.getElementById('worldAttractionsBase');
-  const msg = document.getElementById('worldMsg');
-  const countEl = document.getElementById('worldCount');
-  const namesEl = document.getElementById('worldNames');
-
-  msg.textContent = 'Loading…';
-  msg.classList.remove('hidden');
-  namesEl.innerHTML = '';
+  worldStatus = 'loading';
+  worldError = null;
+  renderWorldChrome();
 
   if (!supabaseClient) {
-    msg.textContent = 'Supabase library did not load.';
+    worldStatus = 'nolib';
+    renderWorldChrome();
     return;
   }
 
@@ -367,31 +405,53 @@ async function loadWorld() {
 
     if (error) throw error;
     worldRecords = data || [];
-
-    countEl.textContent = worldRecords.length;
-    if (worldRecords.length === 0) {
-      msg.textContent = 'No shapes saved yet. Be the first.';
-      msg.classList.remove('hidden');
-    } else {
-      msg.classList.add('hidden');
-    }
-
-    renderPooledView(idBase, worldRecords, ID_DIMS, VIRIDIS);
-    renderPooledView(atBase, worldRecords, AT_DIMS, INFERNO);
-    renderWorldNames();
+    worldStatus = 'ready';
   } catch (err) {
     console.error('World view failed:', err);
-    msg.textContent = explainSupabaseError(err);
-    msg.classList.remove('hidden');
+    worldError = err;
+    worldStatus = 'error';
   }
+
+  renderWorldChrome();
+  if (worldStatus === 'ready') renderWorldCanvases();
+}
+
+/* Everything textual in the world view, derived from state so it can be
+   re-rendered when the language changes without hitting the database. */
+function renderWorldChrome() {
+  const countEl = document.getElementById('worldCount');
+  const msg = document.getElementById('worldMsg');
+  const n = worldStatus === 'ready' ? worldRecords.length : 0;
+
+  countEl.textContent = t(n === 1 ? 'world.count.one' : 'world.count.other', { n });
+
+  let text = '';
+  if (worldStatus === 'loading') text = t('world.loading');
+  else if (worldStatus === 'nolib') text = t('toast.noLib');
+  else if (worldStatus === 'error') text = explainSupabaseError(worldError);
+  else if (worldStatus === 'ready' && n === 0) text = t('world.empty');
+
+  msg.textContent = text;
+  msg.classList.toggle('hidden', !text);
+
+  if (worldStatus === 'loading') document.getElementById('worldNames').innerHTML = '';
+  else renderWorldNames();
+}
+
+function renderWorldCanvases() {
+  if (worldStatus !== 'ready') return;
+  renderPooledView(document.getElementById('worldIdentitiesBase'), worldRecords, ID_DIMS, VIRIDIS);
+  renderPooledView(document.getElementById('worldAttractionsBase'), worldRecords, AT_DIMS, INFERNO);
 }
 
 function renderWorldNames() {
   const namesEl = document.getElementById('worldNames');
   namesEl.innerHTML = '';
 
+  if (worldStatus !== 'ready') return;
+
   if (worldRecords.length === 0) {
-    namesEl.innerHTML = '<p class="world-empty">No one yet.</p>';
+    namesEl.innerHTML = `<p class="world-empty">${escapeHtml(t('world.noOne'))}</p>`;
     return;
   }
 
@@ -402,7 +462,7 @@ function renderWorldNames() {
     .filter(({ rec }) => rec.name_visible !== false);
 
   if (visible.length === 0) {
-    namesEl.innerHTML = '<p class="world-empty">Everyone here has chosen to stay unnamed.</p>';
+    namesEl.innerHTML = `<p class="world-empty">${escapeHtml(t('world.allHidden'))}</p>`;
     return;
   }
 
@@ -411,7 +471,7 @@ function renderWorldNames() {
     item.type = 'button';
     item.className = 'world-name-item';
     item.dataset.idx = i;
-    item.textContent = rec.display_name || 'Anonymous';
+    item.textContent = rec.display_name || t('world.anonymous');
     namesEl.appendChild(item);
   });
 }
@@ -464,10 +524,17 @@ worldNamesEl.addEventListener('click', e => {
   clearWorldHighlight();
   loadRecord(rec, false);
   showView('editor');
-  showToast(toastEl, `Opened ${rec.display_name || 'this'} shape as a starting point. Saving creates your own entry.`, false);
+  showToast(
+    toastEl,
+    rec.display_name
+      ? t('toast.openedNamed', { name: rec.display_name })
+      : t('toast.openedUnnamed'),
+    false
+  );
 });
 
 /* ---------- Boot ---------- */
+setLang(detectLang(), { persist: false });   // before freshData(): default peak names need the language
 appData = freshData();
 initTabs();
 showView('home');

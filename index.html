@@ -4,8 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Parametric Gender Density Mapper</title>
-  <link rel="icon" href="favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css">
+  <meta name="description" content="Map identity, expression, anatomy and attraction as density fields instead of points on a line.">
+  <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="assets/css/styles.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -13,32 +14,54 @@
 <div class="layout">
 
   <!-- ---------- Sidebar ---------- -->
-  <aside class="sidebar">
+  <aside class="sidebar" id="sidebar">
+    <!-- Only visible while the sidebar is an overlay drawer (The world view) -->
+    <button id="sidebarClose" class="sidebar-close" type="button"
+            data-i18n-aria-label="menu.hide" aria-label="Hide menu">✕</button>
+
     <div class="brand">
       <span class="brand-mark"></span>
       <div>
-        <strong>Gender Shapes</strong>
-        <span class="brand-sub">density mapper</span>
+        <strong data-i18n="brand.name">Gender Shapes</strong>
+        <span class="brand-sub" data-i18n="brand.sub">density mapper</span>
       </div>
     </div>
 
     <nav id="nav">
       <button class="nav-item active" data-view="home">
-        <span class="nav-ico">◆</span> Home
+        <span class="nav-ico">◆</span> <span data-i18n="nav.home">Home</span>
       </button>
       <button class="nav-item" data-view="editor">
-        <span class="nav-ico">✎</span> My shape
+        <span class="nav-ico">✎</span> <span data-i18n="nav.editor">My shape</span>
       </button>
       <button class="nav-item" data-view="lookup">
-        <span class="nav-ico">⌗</span> Find by ID
+        <span class="nav-ico">⌗</span> <span data-i18n="nav.lookup">Find by ID</span>
       </button>
       <button class="nav-item" data-view="world">
-        <span class="nav-ico">⊙</span> The world
+        <span class="nav-ico">⊙</span> <span data-i18n="nav.world">The world</span>
       </button>
       <button class="nav-item" data-view="inspiration">
-        <span class="nav-ico">✦</span> Inspiration
+        <span class="nav-ico">✦</span> <span data-i18n="nav.inspiration">Inspiration</span>
       </button>
     </nav>
+
+    <div class="sidebar-footer">
+      <div class="lang-toggle" role="group" data-i18n-aria-label="lang.group" aria-label="Language">
+        <button type="button" data-lang="es" lang="es" aria-pressed="false">ESP</button>
+        <button type="button" data-lang="en" lang="en" aria-pressed="false">ENG</button>
+      </div>
+      <button id="shareBtn" class="icon-btn" type="button"
+              data-i18n-aria-label="share.open" data-i18n-title="share.open"
+              aria-label="Share this page" title="Share this page">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
+             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="18" cy="5" r="2.6"/>
+          <circle cx="6" cy="12" r="2.6"/>
+          <circle cx="18" cy="19" r="2.6"/>
+          <path d="M8.3 10.7 15.7 6.3M8.3 13.3l7.4 4.4"/>
+        </svg>
+      </button>
+    </div>
   </aside>
 
   <!-- ---------- Content ---------- -->
@@ -47,48 +70,43 @@
     <!-- Home -->
     <section id="view-home" class="view">
       <div class="hero">
-        <h1>What shape is your gender?</h1>
-        <p class="hero-sub">
+        <h1 data-i18n="home.title">What shape is your gender?</h1>
+        <p class="hero-sub" data-i18n="home.sub">
           Map identity, expression, anatomy and attraction as density fields
           rather than points on a line. Add as many peaks as you need — most
           people are not a single dot.
         </p>
-        <button id="startBtn" class="btn-hero" type="button">Discover your own gender shape</button>
+        <button id="startBtn" class="btn-hero" type="button" data-i18n="home.cta">Discover your own gender shape</button>
 
         <div class="hero-cards">
           <button class="hero-card" data-view="lookup">
-            <strong>I already have an ID</strong>
-            <span>Paste your ID to view or edit what you saved.</span>
+            <strong data-i18n="home.cardLookup.title">I already have an ID</strong>
+            <span data-i18n="home.cardLookup.desc">Paste your ID to view or edit what you saved.</span>
           </button>
           <button class="hero-card" data-view="world">
-            <strong>See the world</strong>
-            <span>Everyone who has saved a shape, pooled into one view.</span>
+            <strong data-i18n="home.cardWorld.title">See the world</strong>
+            <span data-i18n="home.cardWorld.desc">Everyone who has saved a shape, pooled into one view.</span>
           </button>
         </div>
 
-        <p class="hero-credit">
-          This model draws on
-          <a href="https://www.itspronouncedmetrosexual.com/2018/10/the-genderbread-person-v4/" target="_blank" rel="noopener">The Genderbread Person</a>
-          and
-          <a href="https://transstudent.org/gender/" target="_blank" rel="noopener">Gender Unicorn</a>
-          — <button class="view-link" data-view="inspiration" type="button">more on that</button>
-        </p>
+        <p class="hero-credit" data-i18n-html="home.credit"></p>
       </div>
     </section>
 
     <!-- Editor -->
     <section id="view-editor" class="view hidden">
       <div class="card head-card">
-        <h1>Your shape</h1>
-        <p class="sub-title">Adjust each dimension, then save to get a shareable ID.</p>
+        <h1 data-i18n="editor.title">Your shape</h1>
+        <p class="sub-title" data-i18n="editor.sub">Adjust each dimension, then save to get a shareable ID.</p>
         <div class="user-bar">
-          <input type="text" id="displayNameInput" class="name-input" placeholder="Display name...">
-          <button id="saveBtn" class="btn-save" type="button">Save Results</button>
+          <input type="text" id="displayNameInput" class="name-input"
+                 data-i18n-placeholder="editor.namePlaceholder" placeholder="Display name...">
+          <button id="saveBtn" class="btn-save" type="button" data-i18n="editor.save">Save Results</button>
         </div>
         <label class="visibility-toggle">
           <input type="checkbox" id="nameVisibleInput" checked>
           <span class="toggle-track"><span class="toggle-thumb"></span></span>
-          <span class="toggle-text">Show my name in The world</span>
+          <span class="toggle-text" data-i18n="editor.showName">Show my name in The world</span>
         </label>
         <div id="idBanner" class="id-banner hidden"></div>
         <div id="toast" class="toast hidden"></div>
@@ -101,11 +119,12 @@
     <!-- Lookup -->
     <section id="view-lookup" class="view hidden">
       <div class="card">
-        <h1>Find your shape</h1>
-        <p class="sub-title">Paste the ID you got when you saved. It looks like <code>3f9a...-...</code>.</p>
+        <h1 data-i18n="lookup.title">Find your shape</h1>
+        <p class="sub-title" data-i18n-html="lookup.sub"></p>
         <div class="user-bar">
-          <input type="text" id="uuidInput" class="name-input" placeholder="Paste your ID...">
-          <button id="loadBtn" class="btn-save" type="button">Load</button>
+          <input type="text" id="uuidInput" class="name-input"
+                 data-i18n-placeholder="lookup.placeholder" placeholder="Paste your ID...">
+          <button id="loadBtn" class="btn-save" type="button" data-i18n="lookup.load">Load</button>
         </div>
         <div id="lookupMsg" class="toast hidden"></div>
       </div>
@@ -114,58 +133,46 @@
     <!-- Inspiration -->
     <section id="view-inspiration" class="view hidden">
       <div class="card">
-        <h1>Inspiration</h1>
-        <p class="sub-title">Where this model comes from, and where to go from here.</p>
+        <h1 data-i18n="insp.title">Inspiration</h1>
+        <p class="sub-title" data-i18n="insp.sub">Where this model comes from, and where to go from here.</p>
 
         <div class="lineage-strip">
           <div class="lineage-item">
             <span class="lineage-dot lineage-dot-gbp"></span>
-            <span class="lineage-label">The Genderbread Person</span>
+            <span class="lineage-label" data-i18n="insp.gbp">The Genderbread Person</span>
             <span class="lineage-year">2011</span>
           </div>
           <span class="lineage-arrow">→</span>
           <div class="lineage-item">
             <span class="lineage-dot lineage-dot-gu"></span>
-            <span class="lineage-label">Gender Unicorn</span>
+            <span class="lineage-label" data-i18n="insp.gu">Gender Unicorn</span>
             <span class="lineage-year">2015</span>
           </div>
           <span class="lineage-arrow">→</span>
           <div class="lineage-item">
             <span class="lineage-dot lineage-dot-tool"></span>
-            <span class="lineage-label">This tool</span>
+            <span class="lineage-label" data-i18n="insp.tool">This tool</span>
             <span class="lineage-year">2026</span>
           </div>
         </div>
 
-        <p class="inspiration-text">
-          This tool's five dimensions — identity, expression, anatomical sex, romantic attraction, and
-          sexual attraction — aren't invented here. They come from two frameworks that reshaped how
-          gender is taught.
-          <a href="https://www.itspronouncedmetrosexual.com/2018/10/the-genderbread-person-v4/" target="_blank" rel="noopener">The Genderbread Person v4</a>
-          broke gender into these same categories as independent scales, instead of one line running
-          from "man" to "woman."
-          <a href="https://transstudent.org/gender/" target="_blank" rel="noopener">The Gender Unicorn</a>,
-          from Trans Student Educational Resources, refined that into the near-identical five-part
-          structure used here, splitting attraction into romantic and sexual. What changed on this end:
-          instead of static bars, each dimension is a density field — because most people aren't a
-          single point, they're a range, sometimes several peaks at once.
-        </p>
+        <p class="inspiration-text" data-i18n-html="insp.text"></p>
       </div>
 
       <div class="card">
-        <h2>Other resources</h2>
+        <h2 data-i18n="insp.resources">Other resources</h2>
         <ul class="resource-list">
           <li>
             <a href="https://transstudent.org/" target="_blank" rel="noopener">Trans Student Educational Resources</a>
-            <p>The org behind the Gender Unicorn. Free guides on pronouns, coming out, and legal rights, written for schools, families, and workplaces.</p>
+            <p data-i18n="insp.tser"></p>
           </li>
           <li>
             <a href="https://pflag.org/" target="_blank" rel="noopener">PFLAG</a>
-            <p>The oldest and largest org for LGBTQ+ people and their families — local support groups, and materials for parents navigating a child coming out.</p>
+            <p data-i18n="insp.pflag"></p>
           </li>
           <li>
             <a href="https://glaad.org/reference/" target="_blank" rel="noopener">GLAAD Media Reference Guide</a>
-            <p>A glossary of accurate, respectful terminology — useful if a word you've heard is unfamiliar or feels outdated.</p>
+            <p data-i18n="insp.glaad"></p>
           </li>
         </ul>
       </div>
@@ -173,11 +180,9 @@
 
     <!-- The world -->
     <section id="view-world" class="view hidden">
-      <button id="sidebarToggle" class="sidebar-toggle hidden" type="button" aria-label="Show menu">☰</button>
-
       <div class="world-header">
-        <h1>The world</h1>
-        <p><span id="worldCount">0</span> people so far</p>
+        <h1 data-i18n="world.title">The world</h1>
+        <p id="worldCount"></p>
         <p id="worldMsg" class="world-msg hidden"></p>
       </div>
 
@@ -188,7 +193,7 @@
               <canvas id="worldIdentitiesBase" width="480" height="480"></canvas>
               <canvas id="worldIdentitiesOverlay" width="480" height="480"></canvas>
             </div>
-            <p class="pane-label">Identities</p>
+            <p class="pane-label" data-i18n="world.identities">Identities</p>
           </div>
         </div>
         <div class="world-half world-half-attractions">
@@ -197,7 +202,7 @@
               <canvas id="worldAttractionsBase" width="480" height="480"></canvas>
               <canvas id="worldAttractionsOverlay" width="480" height="480"></canvas>
             </div>
-            <p class="pane-label">Attractions</p>
+            <p class="pane-label" data-i18n="world.attractions">Attractions</p>
           </div>
           <div id="worldNames" class="world-names"></div>
         </div>
@@ -207,8 +212,43 @@
   </main>
 </div>
 
-<script src="config.js"></script>
-<script src="engine.js"></script>
-<script src="app.js"></script>
+<!-- The world view: opens the sidebar as a drawer. Lives outside the view so
+     it is never trapped underneath the drawer's stacking context. -->
+<button id="sidebarOpen" class="sidebar-open hidden" type="button"
+        data-i18n-aria-label="menu.show" aria-label="Show menu">☰</button>
+<div id="sidebarScrim" class="sidebar-scrim hidden"></div>
+
+<!-- ---------- Share dialog ---------- -->
+<dialog id="shareDialog" class="share-dialog" aria-labelledby="shareTitle">
+  <div class="share-head">
+    <h2 id="shareTitle" data-i18n="share.title">Share this page</h2>
+    <button id="shareClose" class="share-close" type="button"
+            data-i18n-aria-label="share.close" aria-label="Close">✕</button>
+  </div>
+
+  <p class="share-hint" data-i18n="share.hint">Scan the QR code to open this page.</p>
+
+  <!-- A real <img> (not a canvas) so right-click / long-press → "Copy image" works natively too -->
+  <img id="shareQr" class="share-qr" width="224" height="224" alt="" data-i18n-alt="share.qrAlt">
+
+  <input id="shareUrl" class="share-url" type="text" readonly
+         data-i18n-aria-label="share.linkLabel" aria-label="Page link">
+
+  <div class="share-actions">
+    <button id="copyLinkBtn" class="btn-save" type="button" data-i18n="share.copyLink">Copy link</button>
+    <button id="copyQrBtn" class="btn-ghost" type="button" data-i18n="share.copyQr">Copy QR image</button>
+  </div>
+  <p id="shareStatus" class="share-status" role="status" aria-live="polite"></p>
+</dialog>
+
+<!-- Order matters: i18n core → locales → config → engine → share → app -->
+<script src="assets/js/vendor/qrcode.js"></script>
+<script src="assets/js/i18n.js"></script>
+<script src="assets/js/locales/en.js"></script>
+<script src="assets/js/locales/es.js"></script>
+<script src="assets/js/config.js"></script>
+<script src="assets/js/engine.js"></script>
+<script src="assets/js/share.js"></script>
+<script src="assets/js/app.js"></script>
 </body>
 </html>
