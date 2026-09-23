@@ -54,6 +54,9 @@ I18N.locales.en = {
   'peak.fem': 'Feminine',
   'peak.other': 'Other',
 
+  /* Cylinder */
+  'sculpture.alt': 'Cylinder with five floors, one per dimension. The highlighted floor is the one being edited.',
+
   /* Canvas axis labels */
   'canvas.masc': 'Masc',
   'canvas.fem': 'Fem',

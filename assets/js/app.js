@@ -2,7 +2,7 @@
    App state, routing and database calls.
    ------------------------------------------------------------------ */
 
-let currentTab = 'identity';
+let currentTab = CHARACTERISTICS[0].id;   // first floor
 let currentRecordId = null;   // set once saved / loaded — enables editing
 let peakSeq = 1;
 let appData;                  // assigned after freshData is safe to call
@@ -115,6 +115,10 @@ document.addEventListener('langchange', () => {
 });
 
 /* ---------- Editor UI ---------- */
+function tabIndex(id) {
+  return CHARACTERISTICS.findIndex(c => c.id === id);
+}
+
 function initTabs() {
   const tabsContainer = document.getElementById('dimTabs');
   tabsContainer.innerHTML = '';
@@ -122,12 +126,21 @@ function initTabs() {
     const btn = document.createElement('button');
     btn.className = `dim-tab ${c.id === currentTab ? 'active' : ''}`;
     btn.innerText = t(`char.${c.id}.title`);
-    btn.onclick = () => { currentTab = c.id; initTabs(); renderActiveView(); };
+    btn.onclick = () => {
+      // The floor we're leaving takes its snapshot of the shape now — the
+      // cylinder never follows the sliders live, only when you move on.
+      Sculpture.commit(tabIndex(currentTab), appData[currentTab]);
+      currentTab = c.id;
+      initTabs();
+      renderActiveView(true);
+    };
     tabsContainer.appendChild(btn);
   });
 }
 
-function renderActiveView() {
+/* animate=true only when arriving via a tab click (the highlight glides to
+   the new floor); every other re-render just shows the current floor. */
+function renderActiveView(animate = false) {
   const container = document.getElementById('activeCharCard');
   container.innerHTML = `
     <div class="char-card">
@@ -137,17 +150,19 @@ function renderActiveView() {
       </div>
       <div class="char-body">
         <div class="chart-panel">
+          <canvas id="sculptureCanvas" role="img" aria-label="${escapeHtml(t('sculpture.alt'))}"></canvas>
+        </div>
+        <div class="chart-panel">
           <canvas id="mainCanvas" width="320" height="320"></canvas>
         </div>
-        <div class="controls-panel">
-          <div id="peaks-list"></div>
-          <button class="btn-add-peak" onclick="addPeak()">${escapeHtml(t('peak.add'))}</button>
-        </div>
       </div>
+      <div class="peaks-row" id="peaks-list"></div>
     </div>
   `;
   renderPeaksList();
   draw();
+  Sculpture.attach(document.getElementById('sculptureCanvas'));
+  Sculpture.setActive(tabIndex(currentTab), animate);
 }
 
 function draw() {
@@ -161,6 +176,7 @@ function escapeHtml(s) {
 
 function renderPeaksList() {
   const listContainer = document.getElementById('peaks-list');
+  const keepScroll = listContainer.scrollLeft;   // rebuilding must not jump the row back to the start
   listContainer.innerHTML = '';
   const peaks = appData[currentTab];
 
@@ -180,6 +196,17 @@ function renderPeaksList() {
     `;
     listContainer.appendChild(peakCard);
   });
+
+  // New peaks appear to the right of the existing ones, so the "add" tile
+  // is simply the last item in the row.
+  const add = document.createElement('button');
+  add.type = 'button';
+  add.className = 'btn-add-peak';
+  add.textContent = t('peak.add');
+  add.onclick = () => addPeak();
+  listContainer.appendChild(add);
+
+  listContainer.scrollLeft = keepScroll;
 }
 
 function sliderRow(st, key, label, dotClass, isPct) {
@@ -225,6 +252,8 @@ window.addPeak = function () {
   });
   renderPeaksList();
   draw();
+  const row = document.getElementById('peaks-list');
+  row.scrollTo({ left: row.scrollWidth, behavior: 'smooth' });   // bring the new peak into view
 };
 
 window.removePeak = function (peakId) {
@@ -375,6 +404,8 @@ function loadRecord(record, editable) {
   // editable: reflect what's actually stored (missing/undefined = visible, matching the DB default).
   // not editable: this is a fresh entry being started, so default to visible regardless of the source shape.
   document.getElementById('nameVisibleInput').checked = editable ? (record.name_visible !== false) : true;
+  // A stored shape is shown whole: every floor gets its snapshot straight away.
+  CHARACTERISTICS.forEach((c, i) => Sculpture.commit(i, appData[c.id]));
   initTabs();
   renderActiveView();
 }
@@ -536,5 +567,6 @@ worldNamesEl.addEventListener('click', e => {
 /* ---------- Boot ---------- */
 setLang(detectLang(), { persist: false });   // before freshData(): default peak names need the language
 appData = freshData();
+Sculpture.reset();          // a new shape starts with an empty cylinder
 initTabs();
 showView('home');

@@ -54,6 +54,9 @@ I18N.locales.es = {
   'peak.fem': 'Femenino',
   'peak.other': 'Otro',
 
+  /* Cylinder */
+  'sculpture.alt': 'Cilindro con cinco pisos, uno por dimensión. El piso resaltado es el que estás editando.',
+
   /* Canvas axis labels */
   'canvas.masc': 'Masc',
   'canvas.fem': 'Fem',

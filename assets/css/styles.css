@@ -327,16 +327,15 @@ nav { display: flex; flex-direction: column; gap: 4px; }
 .char-card-header h2 { margin: 0 0 4px 0; font-size: 18px; }
 .char-card-header p { margin: 0 0 20px 0; color: var(--ink-soft); font-size: 13px; }
 
-.char-body { display: flex; gap: 32px; flex-wrap: wrap; align-items: flex-start; }
-.chart-panel { flex: 0 0 320px; display: flex; justify-content: center; margin: 0 auto; }
+.char-body { display: flex; gap: 28px; flex-wrap: wrap; justify-content: center; align-items: flex-start; }
+.chart-panel { flex: 0 1 320px; min-width: 0; display: flex; justify-content: center; }
 
 canvas {
+  display: block;
   width: 100%; max-width: 320px; height: auto;
   background: #faf9f6; border-radius: 12px;
   border: 1px solid rgba(0,0,0,0.05);
 }
-
-.controls-panel { flex: 1 1 320px; }
 
 .peak-card {
   background: var(--paper);
@@ -380,13 +379,31 @@ canvas {
 input[type=range] { width: 100%; cursor: pointer; }
 .val-display { font-size: 13px; font-weight: 600; text-align: right; }
 
+/* Peaks live below the cylinder/canvas in a single horizontal row: new peaks
+   are added to the right, and the row scrolls sideways when it gets long. */
+.peaks-row {
+  display: flex; gap: 14px; align-items: stretch;
+  margin-top: 24px; padding: 2px 2px 14px;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+}
+.peaks-row .peak-card {
+  flex: 0 0 min(310px, 74vw);
+  margin-bottom: 0;
+  scroll-snap-align: start;
+}
+.peaks-row .slider-row { grid-template-columns: 104px 1fr 38px; }
+
 .btn-add-peak {
-  width: 100%; padding: 12px; margin-top: 8px;
+  flex: 0 0 132px;
+  display: flex; align-items: center; justify-content: center; text-align: center;
+  padding: 12px;
   background: transparent;
   border: 1.5px dashed var(--ink-soft);
-  border-radius: 8px; color: var(--ink-soft);
-  font-weight: 600; cursor: pointer;
+  border-radius: 10px; color: var(--ink-soft);
+  font-weight: 600; font-size: 14px; cursor: pointer;
   font-family: var(--font-body);
+  scroll-snap-align: end;
   transition: all 0.2s ease;
 }
 .btn-add-peak:hover { background: var(--paper); color: var(--ink); }

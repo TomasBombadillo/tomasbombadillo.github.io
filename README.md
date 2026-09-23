@@ -26,6 +26,7 @@ and the [Gender Unicorn](https://transstudent.org/gender/).
 │       │   └── es.js         # Spanish strings
 │       ├── config.js         # Supabase connection + error messages
 │       ├── engine.js         # canvas rendering (pure drawing, no page state)
+│       ├── sculpture.js      # the cylinder: one floor per dimension
 │       ├── share.js          # "share this page" dialog + QR code
 │       ├── app.js            # state, routing, editor, saving, world view
 │       └── vendor/
@@ -50,6 +51,21 @@ python3 -m http.server 8000
 
 Repo name `<user>.github.io` → Settings → Pages → deploy from the `main`
 branch, `/ (root)`. Nothing to build.
+
+## The cylinder ("sculpture")
+
+Each dimension is one floor of a translucent cylinder, in the same order as
+the editor tabs (left → right = floor 1 → 5, bottom → top):
+
+1. Anatomical sex · 2. Gender identity · 3. Gender expression ·
+4. Romantic attraction · 5. Sexual attraction
+
+The order lives in one place, `CHARACTERISTICS` in `assets/js/engine.js`.
+The floor being edited is opaque, the others are dimmed, and the highlight
+glides between floors when you switch tabs. The floors are snapshots: the
+circle canvas updates live with the sliders, but a floor is only written to
+the cylinder when you leave its tab (or all at once when a saved shape is
+loaded). Tilt, radius and spacing are constants at the top of `sculpture.js`.
 
 ## Languages
 

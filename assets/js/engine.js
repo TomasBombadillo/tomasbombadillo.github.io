@@ -6,12 +6,15 @@
 
 // Titles and descriptions are looked up in the active language:
 // t(`char.${id}.title`) / t(`char.${id}.desc`) — see locales/*.js
+//
+// ORDER MATTERS: this is the order of the editor tabs (left → right) AND the
+// order of the floors in the cylinder (bottom → top). See sculpture.js.
 const CHARACTERISTICS = [
-  { id: 'identity' },
-  { id: 'expression' },
-  { id: 'sex' },
-  { id: 'romantic' },
-  { id: 'sexual' }
+  { id: 'sex' },          // 1  Anatomical Sex
+  { id: 'identity' },     // 2  Gender Identity
+  { id: 'expression' },   // 3  Gender Expression
+  { id: 'romantic' },     // 4  Romantic Attraction
+  { id: 'sexual' }        // 5  Sexual Attraction
 ];
 
 const VIRIDIS = [
