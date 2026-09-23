@@ -35,6 +35,9 @@
       <button class="nav-item" data-view="world">
         <span class="nav-ico">⊙</span> The world
       </button>
+      <button class="nav-item" data-view="inspiration">
+        <span class="nav-ico">✦</span> Inspiration
+      </button>
     </nav>
   </aside>
 
@@ -62,6 +65,14 @@
             <span>Everyone who has saved a shape, pooled into one view.</span>
           </button>
         </div>
+
+        <p class="hero-credit">
+          This model draws on
+          <a href="https://www.itspronouncedmetrosexual.com/2018/10/the-genderbread-person-v4/" target="_blank" rel="noopener">The Genderbread Person</a>
+          and
+          <a href="https://transstudent.org/gender/" target="_blank" rel="noopener">Gender Unicorn</a>
+          — <button class="view-link" data-view="inspiration" type="button">more on that</button>
+        </p>
       </div>
     </section>
 
@@ -97,6 +108,66 @@
           <button id="loadBtn" class="btn-save" type="button">Load</button>
         </div>
         <div id="lookupMsg" class="toast hidden"></div>
+      </div>
+    </section>
+
+    <!-- Inspiration -->
+    <section id="view-inspiration" class="view hidden">
+      <div class="card">
+        <h1>Inspiration</h1>
+        <p class="sub-title">Where this model comes from, and where to go from here.</p>
+
+        <div class="lineage-strip">
+          <div class="lineage-item">
+            <span class="lineage-dot lineage-dot-gbp"></span>
+            <span class="lineage-label">The Genderbread Person</span>
+            <span class="lineage-year">2011</span>
+          </div>
+          <span class="lineage-arrow">→</span>
+          <div class="lineage-item">
+            <span class="lineage-dot lineage-dot-gu"></span>
+            <span class="lineage-label">Gender Unicorn</span>
+            <span class="lineage-year">2015</span>
+          </div>
+          <span class="lineage-arrow">→</span>
+          <div class="lineage-item">
+            <span class="lineage-dot lineage-dot-tool"></span>
+            <span class="lineage-label">This tool</span>
+            <span class="lineage-year">2026</span>
+          </div>
+        </div>
+
+        <p class="inspiration-text">
+          This tool's five dimensions — identity, expression, anatomical sex, romantic attraction, and
+          sexual attraction — aren't invented here. They come from two frameworks that reshaped how
+          gender is taught.
+          <a href="https://www.itspronouncedmetrosexual.com/2018/10/the-genderbread-person-v4/" target="_blank" rel="noopener">The Genderbread Person v4</a>
+          broke gender into these same categories as independent scales, instead of one line running
+          from "man" to "woman."
+          <a href="https://transstudent.org/gender/" target="_blank" rel="noopener">The Gender Unicorn</a>,
+          from Trans Student Educational Resources, refined that into the near-identical five-part
+          structure used here, splitting attraction into romantic and sexual. What changed on this end:
+          instead of static bars, each dimension is a density field — because most people aren't a
+          single point, they're a range, sometimes several peaks at once.
+        </p>
+      </div>
+
+      <div class="card">
+        <h2>Other resources</h2>
+        <ul class="resource-list">
+          <li>
+            <a href="https://transstudent.org/" target="_blank" rel="noopener">Trans Student Educational Resources</a>
+            <p>The org behind the Gender Unicorn. Free guides on pronouns, coming out, and legal rights, written for schools, families, and workplaces.</p>
+          </li>
+          <li>
+            <a href="https://pflag.org/" target="_blank" rel="noopener">PFLAG</a>
+            <p>The oldest and largest org for LGBTQ+ people and their families — local support groups, and materials for parents navigating a child coming out.</p>
+          </li>
+          <li>
+            <a href="https://glaad.org/reference/" target="_blank" rel="noopener">GLAAD Media Reference Guide</a>
+            <p>A glossary of accurate, respectful terminology — useful if a word you've heard is unfamiliar or feels outdated.</p>
+          </li>
+        </ul>
       </div>
     </section>
 

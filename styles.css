@@ -132,6 +132,41 @@ nav { display: flex; flex-direction: column; gap: 4px; }
 .hero-card strong { display: block; font-size: 14px; margin-bottom: 4px; }
 .hero-card span { font-size: 12.5px; color: var(--ink-soft); line-height: 1.45; }
 
+.hero-credit { margin-top: 28px; font-size: 12.5px; color: var(--ink-soft); }
+.hero-credit a { color: var(--ink-soft); text-decoration: underline; }
+.hero-credit a:hover { color: var(--accent); }
+.view-link {
+  background: none; border: none; padding: 0; margin: 0;
+  font: inherit; color: var(--ink-soft); text-decoration: underline;
+  cursor: pointer;
+}
+.view-link:hover { color: var(--accent); }
+
+/* ---------- Inspiration ---------- */
+.lineage-strip {
+  display: flex; align-items: center; justify-content: center;
+  gap: 14px; margin: 20px 0 26px; flex-wrap: wrap;
+}
+.lineage-item { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+.lineage-dot { width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0; }
+.lineage-dot-gbp { background: radial-gradient(circle at 35% 30%, #f6c98a, var(--accent) 75%); }
+.lineage-dot-gu { background: radial-gradient(circle at 35% 30%, #a9c8fb, var(--masculino) 45%, var(--femenino)); }
+.lineage-dot-tool { background: radial-gradient(circle at 35% 30%, #8b4fae, #33083f 55%, #0a0503); }
+.lineage-label { font-size: 12px; font-weight: 600; color: var(--ink); text-align: center; }
+.lineage-year { font-size: 10.5px; color: var(--ink-soft); }
+.lineage-arrow { color: var(--ink-soft); font-size: 16px; margin-bottom: 18px; }
+
+.inspiration-text { font-size: 14px; line-height: 1.7; color: var(--ink); margin: 0; }
+.inspiration-text a { color: var(--accent); }
+
+.card h2 { font-size: 17px; margin: 0 0 4px; }
+.resource-list { list-style: none; margin: 16px 0 0; padding: 0; display: flex; flex-direction: column; gap: 16px; }
+.resource-list li { border-top: 1px solid rgba(0,0,0,0.08); padding-top: 14px; }
+.resource-list li:first-child { border-top: none; padding-top: 0; }
+.resource-list a { font-weight: 600; color: var(--ink); font-size: 14.5px; text-decoration: none; }
+.resource-list a:hover { color: var(--accent); }
+.resource-list p { margin: 4px 0 0; font-size: 13px; color: var(--ink-soft); line-height: 1.5; }
+
 /* ---------- Editor ---------- */
 .head-card { margin-bottom: 20px; }
 .user-bar { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }

@@ -16,7 +16,7 @@ function freshData() {
 }
 
 /* ---------- Routing ---------- */
-const views = ['home', 'editor', 'lookup', 'world'];
+const views = ['home', 'editor', 'lookup', 'world', 'inspiration'];
 
 function showView(name) {
   views.forEach(v => {
@@ -29,17 +29,28 @@ function showView(name) {
   // The world view is an immersive full-screen take with no sidebar —
   // hide it and surface a small button to bring it back.
   const isWorld = name === 'world';
+  const sidebarToggle = document.getElementById('sidebarToggle');
   document.querySelector('.sidebar').classList.toggle('hidden', isWorld);
-  document.getElementById('sidebarToggle').classList.toggle('hidden', !isWorld);
+  sidebarToggle.classList.toggle('hidden', !isWorld);
+  if (isWorld) {
+    // Always start closed when (re-)entering, regardless of how a previous visit was left.
+    sidebarToggle.textContent = '☰';
+    sidebarToggle.setAttribute('aria-label', 'Show menu');
+  }
 
   if (name === 'editor') renderActiveView();
   if (name === 'world') loadWorld();
   window.scrollTo(0, 0);
 }
 
+// A real open/close toggle, not a one-way reveal — otherwise there's no way
+// back to the immersive view short of leaving and re-entering it.
 document.getElementById('sidebarToggle').addEventListener('click', () => {
-  document.querySelector('.sidebar').classList.remove('hidden');
-  document.getElementById('sidebarToggle').classList.add('hidden');
+  const sidebar = document.querySelector('.sidebar');
+  const toggle = document.getElementById('sidebarToggle');
+  const nowHidden = sidebar.classList.toggle('hidden');
+  toggle.textContent = nowHidden ? '☰' : '✕';
+  toggle.setAttribute('aria-label', nowHidden ? 'Show menu' : 'Hide menu');
 });
 
 document.getElementById('nav').addEventListener('click', e => {
@@ -47,8 +58,8 @@ document.getElementById('nav').addEventListener('click', e => {
   if (btn) showView(btn.dataset.view);
 });
 
-document.querySelectorAll('.hero-card').forEach(card => {
-  card.addEventListener('click', () => showView(card.dataset.view));
+document.querySelectorAll('.hero-card, .view-link').forEach(el => {
+  el.addEventListener('click', () => showView(el.dataset.view));
 });
 
 document.getElementById('startBtn').addEventListener('click', () => showView('editor'));
