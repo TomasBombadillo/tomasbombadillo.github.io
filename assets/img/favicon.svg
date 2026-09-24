@@ -1,41 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <defs>
-    <!-- Peak 1: Top Axis (22 units from center at 270°) -->
-    <radialGradient id="peakTop" cx="50%" cy="28%" r="50%">
-      <stop offset="0%" stop-color="#fde725" stop-opacity="0.95"/> <!-- Yellow Core -->
-      <stop offset="45%" stop-color="#21918c" stop-opacity="0.7"/> <!-- Teal Mid-density -->
-      <stop offset="100%" stop-color="#440154" stop-opacity="0"/>  <!-- Transparent Edge -->
-    </radialGradient>
-    
-    <!-- Peak 2: Bottom-Right Axis (22 units from center at 30°) -->
-    <radialGradient id="peakRight" cx="69.1%" cy="61%" r="50%">
-      <stop offset="0%" stop-color="#fde725" stop-opacity="0.95"/>
-      <stop offset="45%" stop-color="#21918c" stop-opacity="0.7"/>
-      <stop offset="100%" stop-color="#440154" stop-opacity="0"/>
-    </radialGradient>
-    
-    <!-- Peak 3: Bottom-Left Axis (22 units from center at 150°) -->
-    <radialGradient id="peakLeft" cx="30.9%" cy="61%" r="50%">
-      <stop offset="0%" stop-color="#fde725" stop-opacity="0.95"/>
-      <stop offset="45%" stop-color="#21918c" stop-opacity="0.7"/>
-      <stop offset="100%" stop-color="#440154" stop-opacity="0"/>
-    </radialGradient>
-
-    <!-- Symmetric Reuleaux Triangle Boundary Path (3-fold rotational symmetry) -->
-    <clipPath id="reuleauxBoundary">
-      <path d="M 50 8 A 73 73 0 0 1 86.37 71 A 73 73 0 0 1 13.63 71 A 73 73 0 0 1 50 8 Z"/>
-    </clipPath>
-  </defs>
-
-  <!-- Base Density Field (Deep Purple) -->
-  <path d="M 50 8 A 73 73 0 0 1 86.37 71 A 73 73 0 0 1 13.63 71 A 73 73 0 0 1 50 8 Z" fill="#440154" />
-  
-  <!-- Density Gradient Layers -->
-  <rect width="100" height="100" fill="url(#peakTop)" clip-path="url(#reuleauxBoundary)" />
-  <rect width="100" height="100" fill="url(#peakRight)" clip-path="url(#reuleauxBoundary)" />
-  <rect width="100" height="100" fill="url(#peakLeft)" clip-path="url(#reuleauxBoundary)" />
-  
-  <!-- Outer Reuleaux Outline -->
-  <path d="M 50 8 A 73 73 0 0 1 86.37 71 A 73 73 0 0 1 13.63 71 A 73 73 0 0 1 50 8 Z" 
-        fill="none" stroke="#21918c" stroke-width="3" opacity="0.9" />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Same three colours as the sidebar brand mark: masculine / feminine / other -->
+  <circle cx="16" cy="16" r="15" fill="#fff"/>
+  <path d="M16 16 16 1a15 15 0 0 1 13 22.5Z" fill="#2563eb"/>
+  <path d="M16 16 29 23.5A15 15 0 0 1 3 23.5Z" fill="#ec4899"/>
+  <path d="M16 16 3 23.5A15 15 0 0 1 16 1Z" fill="#10b981"/>
 </svg>

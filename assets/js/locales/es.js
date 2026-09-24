@@ -54,8 +54,18 @@ I18N.locales.es = {
   'peak.fem': 'Femenino',
   'peak.other': 'Otro',
 
-  /* Cylinder */
-  'sculpture.alt': 'Cilindro con cinco pisos, uno por dimensión. El piso resaltado es el que estás editando.',
+  /* The tree & the forest */
+  'nav.forest': "El bosque",
+  'tree.alt': "Un árbol de estilo low-poly dentro de un cilindro de cristal decorado con mariposas. Cada piso del cilindro es una dimensión y sus ramas son los picos de esa dimensión. El piso resaltado es el que estás editando.",
+  'tree.rotateCw': "Girar el árbol en sentido horario",
+  'tree.rotateCcw': "Girar el árbol en sentido antihorario",
+  'forest.title': "El bosque",
+  'forest.count.one': "El bosque tiene {n} árbol",
+  'forest.count.other': "El bosque tiene {n} árboles",
+  'forest.loading': "Cargando…",
+  'forest.empty': "Todavía no hay árboles. Planta el primero.",
+  'forest.alt': "Un bosque con un árbol low-poly por cada persona que guardó una forma",
+  'forest.noWebgl': "Tu navegador no puede dibujar gráficos 3D, así que no se puede mostrar el bosque.",
 
   /* Canvas axis labels */
   'canvas.masc': 'Masc',
@@ -77,7 +87,7 @@ I18N.locales.es = {
   'toast.updateZero': 'La actualización no afectó ninguna fila: no se escribió nada. A la tabla le falta una política UPDATE para usuarios anónimos (ver supabase/setup.sql). Usa «empezar una forma nueva en su lugar» arriba para guardar esto como una entrada nueva.',
   'toast.noReadback': 'La fila se escribió, pero no se pudo leer de vuelta. Agrega una política SELECT para usuarios anónimos para que la app pueda devolverte tu ID.',
   'toast.updated': 'Se actualizó tu forma existente.',
-  'toast.saved': 'Guardado. Tu forma ya está en la galería.',
+  'toast.saved': 'Guardado. Tu forma está en El mundo y tu árbol está creciendo en El bosque.',
   'toast.newMode': 'Ahora estás creando una entrada nueva. Al guardar no se tocará la anterior.',
   'toast.pasteId': 'Primero pega un ID.',
   'toast.notFound': 'No se encontró ninguna forma con ese ID.',

@@ -8,7 +8,7 @@
 // t(`char.${id}.title`) / t(`char.${id}.desc`) — see locales/*.js
 //
 // ORDER MATTERS: this is the order of the editor tabs (left → right) AND the
-// order of the floors in the cylinder (bottom → top). See sculpture.js.
+// order of the floors of the tree's cylinder (bottom → top). See tree/model.js.
 const CHARACTERISTICS = [
   { id: 'sex' },          // 1  Anatomical Sex
   { id: 'identity' },     // 2  Gender Identity

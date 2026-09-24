@@ -54,8 +54,18 @@ I18N.locales.en = {
   'peak.fem': 'Feminine',
   'peak.other': 'Other',
 
-  /* Cylinder */
-  'sculpture.alt': 'Cylinder with five floors, one per dimension. The highlighted floor is the one being edited.',
+  /* The tree & the forest */
+  'nav.forest': "The forest",
+  'tree.alt': "A low-poly tree inside a glass cylinder decorated with butterflies. Each floor of the cylinder is one dimension and its branches are that dimension's peaks. The highlighted floor is the one being edited.",
+  'tree.rotateCw': "Rotate tree clockwise",
+  'tree.rotateCcw': "Rotate tree counterclockwise",
+  'forest.title': "The forest",
+  'forest.count.one': "The forest has {n} tree",
+  'forest.count.other': "The forest has {n} trees",
+  'forest.loading': "Loading…",
+  'forest.empty': "No trees yet. Plant the first one.",
+  'forest.alt': "A forest with one low-poly tree for every person who saved a shape",
+  'forest.noWebgl': "Your browser can't draw 3D graphics, so the forest can't be shown.",
 
   /* Canvas axis labels */
   'canvas.masc': 'Masc',
@@ -77,7 +87,7 @@ I18N.locales.en = {
   'toast.updateZero': 'Update matched zero rows — nothing was written. The table is missing an UPDATE policy for anonymous users (see supabase/setup.sql). Use "start a new shape instead" above to store this as a fresh entry.',
   'toast.noReadback': 'The row was written but could not be read back. Add a SELECT policy for anonymous users so the app can return your ID.',
   'toast.updated': 'Updated your existing shape.',
-  'toast.saved': 'Saved. Your shape is now in the gallery.',
+  'toast.saved': 'Saved. Your shape is in The world and your tree is growing in The forest.',
   'toast.newMode': 'Now creating a new entry. Saving will not touch the old one.',
   'toast.pasteId': 'Paste an ID first.',
   'toast.notFound': 'No shape found with that ID.',

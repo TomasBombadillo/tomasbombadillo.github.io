@@ -3,6 +3,7 @@
    ------------------------------------------------------------------ */
 
 let currentTab = CHARACTERISTICS[0].id;   // first floor
+let treeVisible = false;      // the tree only appears once a shape has been saved (or loaded)
 let currentRecordId = null;   // set once saved / loaded — enables editing
 let peakSeq = 1;
 let appData;                  // assigned after freshData is safe to call
@@ -25,26 +26,26 @@ function freshData() {
 }
 
 /* ---------- Routing ---------- */
-const views = ['home', 'editor', 'lookup', 'world', 'inspiration'];
+const views = ['home', 'editor', 'lookup', 'world', 'forest', 'inspiration'];
 
 const sidebarEl    = document.getElementById('sidebar');
 const sidebarOpen  = document.getElementById('sidebarOpen');
 const sidebarClose = document.getElementById('sidebarClose');
 const sidebarScrim = document.getElementById('sidebarScrim');
-let worldMode = false;
+let immersive = false;        // The world / The forest: full-screen views with a drawer menu
 
-/* The world view is immersive and full-screen, so there the sidebar becomes
+/* The world and forest views are immersive and full-screen, so there the sidebar becomes
    an overlay drawer: closed by default, opened with the ☰ button, closed with
    the ✕ inside the drawer (or the backdrop / Esc key).
    In every other view the sidebar is just a normal column. */
 function setSidebarOpen(open) {
-  sidebarEl.classList.toggle('hidden', worldMode && !open);
-  sidebarScrim.classList.toggle('hidden', !(worldMode && open));
-  sidebarOpen.classList.toggle('hidden', !(worldMode && !open));
+  sidebarEl.classList.toggle('hidden', immersive && !open);
+  sidebarScrim.classList.toggle('hidden', !(immersive && open));
+  sidebarOpen.classList.toggle('hidden', !(immersive && !open));
 }
 
-function setWorldMode(on) {
-  worldMode = on;
+function setImmersive(on) {
+  immersive = on;
   sidebarEl.classList.toggle('is-overlay', on);
   setSidebarOpen(!on);
 }
@@ -57,10 +58,11 @@ function showView(name) {
     b.classList.toggle('active', b.dataset.view === name);
   });
 
-  setWorldMode(name === 'world');
+  setImmersive(name === 'world' || name === 'forest');
 
   if (name === 'editor') renderActiveView();
   if (name === 'world') loadWorld();
+  if (name === 'forest') openForest(); else Forest.stop();
   window.scrollTo(0, 0);
 }
 
@@ -77,7 +79,7 @@ sidebarClose.addEventListener('click', closeDrawer);
 sidebarScrim.addEventListener('click', closeDrawer);
 
 document.addEventListener('keydown', e => {
-  if (e.key !== 'Escape' || !worldMode) return;
+  if (e.key !== 'Escape' || !immersive) return;
   if (document.querySelector('dialog[open]')) return;        // the share dialog handles its own Esc
   if (!sidebarEl.classList.contains('hidden')) closeDrawer();
 });
@@ -112,6 +114,7 @@ document.addEventListener('langchange', () => {
   if (currentRecordId) showIdBanner(currentRecordId);
   renderWorldChrome();
   renderWorldCanvases();
+  renderForestChrome();
 });
 
 /* ---------- Editor UI ---------- */
@@ -127,9 +130,9 @@ function initTabs() {
     btn.className = `dim-tab ${c.id === currentTab ? 'active' : ''}`;
     btn.innerText = t(`char.${c.id}.title`);
     btn.onclick = () => {
-      // The floor we're leaving takes its snapshot of the shape now — the
-      // cylinder never follows the sliders live, only when you move on.
-      Sculpture.commit(tabIndex(currentTab), appData[currentTab]);
+      // The floor we're leaving takes its snapshot now — the tree never
+      // follows the sliders live, only when you move on to another dimension.
+      if (treeVisible) TreeView.commitFloor(tabIndex(currentTab), appData[currentTab]);
       currentTab = c.id;
       initTabs();
       renderActiveView(true);
@@ -138,9 +141,20 @@ function initTabs() {
   });
 }
 
+/* Puts the tree panel into its slot, or hides the slot while there's no tree yet. */
+function mountTree(animate) {
+  const slot = document.getElementById('treeSlot');
+  if (!slot) return;
+  TreeView.detach();
+  const ok = treeVisible && TreeView.attach(slot);
+  slot.classList.toggle('hidden', !ok);
+  if (ok) TreeView.setActive(tabIndex(currentTab), animate);   // highlight this dimension's floor
+}
+
 /* animate=true only when arriving via a tab click (the highlight glides to
    the new floor); every other re-render just shows the current floor. */
 function renderActiveView(animate = false) {
+  TreeView.detach();   // the panel lives in the DOM we're about to replace
   const container = document.getElementById('activeCharCard');
   container.innerHTML = `
     <div class="char-card">
@@ -150,19 +164,16 @@ function renderActiveView(animate = false) {
       </div>
       <div class="char-body">
         <div class="chart-panel">
-          <canvas id="sculptureCanvas" role="img" aria-label="${escapeHtml(t('sculpture.alt'))}"></canvas>
-        </div>
-        <div class="chart-panel">
           <canvas id="mainCanvas" width="320" height="320"></canvas>
         </div>
+        <div class="chart-panel tree-slot hidden" id="treeSlot"></div>
       </div>
       <div class="peaks-row" id="peaks-list"></div>
     </div>
   `;
   renderPeaksList();
   draw();
-  Sculpture.attach(document.getElementById('sculptureCanvas'));
-  Sculpture.setActive(tabIndex(currentTab), animate);
+  mountTree(animate);
 }
 
 function draw() {
@@ -310,6 +321,8 @@ function clearEditMode() {
   currentRecordId = null;
   document.getElementById('idBanner').classList.add('hidden');
   document.getElementById('nameVisibleInput').checked = true;
+  treeVisible = false;          // a new shape: no tree until it is saved
+  mountTree(false);
   showToast(toastEl, t('toast.newMode'), false);
 }
 
@@ -353,6 +366,10 @@ saveBtn.addEventListener('click', async () => {
 
     currentRecordId = result.data[0].id;
     showIdBanner(currentRecordId);
+    // The tree appears (or updates) now: every floor takes its snapshot from what was saved.
+    treeVisible = true;
+    TreeView.setShape(appData);
+    mountTree(false);
     showToast(toastEl, isUpdate ? t('toast.updated') : t('toast.saved'), false);
   } catch (err) {
     console.error('Save failed:', err);
@@ -404,8 +421,9 @@ function loadRecord(record, editable) {
   // editable: reflect what's actually stored (missing/undefined = visible, matching the DB default).
   // not editable: this is a fresh entry being started, so default to visible regardless of the source shape.
   document.getElementById('nameVisibleInput').checked = editable ? (record.name_visible !== false) : true;
-  // A stored shape is shown whole: every floor gets its snapshot straight away.
-  CHARACTERISTICS.forEach((c, i) => Sculpture.commit(i, appData[c.id]));
+  // A stored shape is shown whole: the tree grows every floor straight away.
+  treeVisible = true;
+  TreeView.setShape(appData);
   initTabs();
   renderActiveView();
 }
@@ -564,9 +582,124 @@ worldNamesEl.addEventListener('click', e => {
   );
 });
 
+/* ---------- The forest ---------- */
+const forestCanvas = document.getElementById('forestCanvas');
+let forestRecords = [];
+let forestStatus = 'idle';      // idle | loading | nolib | nowebgl | error | ready
+let forestError = null;
+
+/* Opens the view: starts drawing, then (re)loads the trees. */
+function openForest() {
+  if (!Forest.start(forestCanvas)) forestStatus = 'nowebgl';
+  loadForest();
+}
+
+async function loadForest() {
+  if (forestStatus === 'nowebgl') { renderForestChrome(); return; }
+  forestStatus = 'loading';
+  forestError = null;
+  renderForestChrome();
+
+  if (!supabaseClient) { forestStatus = 'nolib'; renderForestChrome(); return; }
+
+  try {
+    // Oldest first: the forest grows outwards and nobody's tree ever moves.
+    const columns = 'id, display_name, shape, name_visible';
+    let res = await supabaseClient.from(TABLE_NAME).select(columns).order('created_at', { ascending: true }).limit(500);
+    if (res.error && (res.error.code === '42703' || /created_at/i.test(res.error.message || ''))) {
+      // The table has no created_at column yet (see supabase/setup.sql): fall back to id order.
+      res = await supabaseClient.from(TABLE_NAME).select(columns).order('id', { ascending: true }).limit(500);
+    }
+    if (res.error) throw res.error;
+    forestRecords = res.data || [];
+    forestStatus = 'ready';
+  } catch (err) {
+    console.error('Forest view failed:', err);
+    forestError = err;
+    forestStatus = 'error';
+  }
+
+  renderForestChrome();
+  if (forestStatus === 'ready') Forest.setRecords(forestRecords.map(r => ({ id: r.id, shape: r.shape })));
+}
+
+/* Title count, messages and names — derived from state so a language switch
+   can redraw them without asking the database again. */
+function renderForestChrome() {
+  const n = forestStatus === 'ready' ? forestRecords.length : 0;
+  document.getElementById('forestCount').textContent =
+    t(n === 1 ? 'forest.count.one' : 'forest.count.other', { n });
+
+  let text = '';
+  if (forestStatus === 'loading') text = t('forest.loading');
+  else if (forestStatus === 'nolib') text = t('toast.noLib');
+  else if (forestStatus === 'nowebgl') text = t('forest.noWebgl');
+  else if (forestStatus === 'error') text = explainSupabaseError(forestError);
+  else if (forestStatus === 'ready' && n === 0) text = t('forest.empty');
+  const msg = document.getElementById('forestMsg');
+  msg.textContent = text;
+  msg.classList.toggle('hidden', !text);
+
+  const namesEl = document.getElementById('forestNames');
+  namesEl.innerHTML = '';
+  if (forestStatus !== 'ready' || n === 0) return;
+
+  // Trees whose owner hid their name are still in the forest — they just aren't listed.
+  const visible = forestRecords.map((rec, i) => ({ rec, i })).filter(({ rec }) => rec.name_visible !== false);
+  if (visible.length === 0) {
+    namesEl.innerHTML = `<p class="world-empty">${escapeHtml(t('world.allHidden'))}</p>`;
+    return;
+  }
+  visible.forEach(({ rec, i }) => {
+    const item = document.createElement('button');
+    item.type = 'button';
+    item.className = 'world-name-item';
+    item.dataset.idx = i;
+    item.textContent = rec.display_name || t('world.anonymous');
+    namesEl.appendChild(item);
+  });
+}
+
+const forestNamesEl = document.getElementById('forestNames');
+const forestRecOf = e => {
+  const item = e.target.closest('.world-name-item');
+  return item ? { item, rec: forestRecords[Number(item.dataset.idx)] } : null;
+};
+
+// Hover (or keyboard focus) a name: every other tree dims, that tree comes forward.
+forestNamesEl.addEventListener('mouseover', e => {
+  const hit = forestRecOf(e);
+  if (hit && hit.rec) Forest.highlight(hit.rec.id);
+});
+forestNamesEl.addEventListener('mouseout', e => {
+  const hit = forestRecOf(e);
+  if (!hit || hit.item.contains(e.relatedTarget)) return;
+  Forest.highlight(null);
+});
+forestNamesEl.addEventListener('focusin', e => {
+  const hit = forestRecOf(e);
+  if (hit && hit.rec) Forest.highlight(hit.rec.id);
+});
+forestNamesEl.addEventListener('focusout', () => Forest.highlight(null));
+
+// Click: open that person's shape (and tree) as a starting point — same as in The world.
+forestNamesEl.addEventListener('click', e => {
+  const hit = forestRecOf(e);
+  if (!hit || !hit.rec) return;
+  Forest.highlight(null);
+  loadRecord(hit.rec, false);
+  showView('editor');
+  showToast(
+    toastEl,
+    hit.rec.display_name
+      ? t('toast.openedNamed', { name: hit.rec.display_name })
+      : t('toast.openedUnnamed'),
+    false
+  );
+});
+
 /* ---------- Boot ---------- */
 setLang(detectLang(), { persist: false });   // before freshData(): default peak names need the language
 appData = freshData();
-Sculpture.reset();          // a new shape starts with an empty cylinder
 initTabs();
 showView('home');

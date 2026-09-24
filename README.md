@@ -5,6 +5,8 @@ as density fields instead of points on a line. Bilingual (ESP / ENG).
 
 Live site: https://tomasbombadillo.github.io/
 
+A tree grows out of every shape you save, and all the trees make up a forest.
+
 Inspired by [The Genderbread Person](https://www.itspronouncedmetrosexual.com/2018/10/the-genderbread-person-v4/)
 and the [Gender Unicorn](https://transstudent.org/gender/).
 
@@ -25,12 +27,18 @@ and the [Gender Unicorn](https://transstudent.org/gender/).
 │       │   ├── en.js         # English strings (also the fallback)
 │       │   └── es.js         # Spanish strings
 │       ├── config.js         # Supabase connection + error messages
-│       ├── engine.js         # canvas rendering (pure drawing, no page state)
-│       ├── sculpture.js      # the cylinder: one floor per dimension
+│       ├── engine.js         # heatmap canvas + the ORDER of the dimensions
+│       ├── tree/
+│       │   ├── model.js          # pure math: peaks → branches, colours, trunk
+│       │   ├── geometry.js       # three.js geometry: branches, leaves, base, glass
+│       │   ├── editor-view.js    # the tree beside the canvas (rotate, dim, grow)
+│       │   └── forest-view.js    # "The forest": every saved tree in one scene
 │       ├── share.js          # "share this page" dialog + QR code
-│       ├── app.js            # state, routing, editor, saving, world view
+│       ├── app.js            # state, routing, editor, saving, world, forest
 │       └── vendor/
-│           └── qrcode.js     # qrcode-generator 2.0.4 (MIT), unmodified
+│           ├── qrcode.js         # qrcode-generator (MIT), unmodified
+│           ├── three.custom.min.js   # trimmed three.js build (MIT), see below
+│           └── three-entry.js    # the list of three.js parts that bundle contains
 └── supabase/
     └── setup.sql             # table + Row Level Security policies
 ```
@@ -52,20 +60,65 @@ python3 -m http.server 8000
 Repo name `<user>.github.io` → Settings → Pages → deploy from the `main`
 branch, `/ (root)`. Nothing to build.
 
-## The cylinder ("sculpture")
+## The tree
 
-Each dimension is one floor of a translucent cylinder, in the same order as
-the editor tabs (left → right = floor 1 → 5, bottom → top):
+Saving a shape grows a low-poly tree inside a glass cylinder (printed with
+small butterflies). Every dimension is one floor, in this order, bottom → top
+(the same order as the editor tabs, left → right):
 
 1. Anatomical sex · 2. Gender identity · 3. Gender expression ·
 4. Romantic attraction · 5. Sexual attraction
 
-The order lives in one place, `CHARACTERISTICS` in `assets/js/engine.js`.
-The floor being edited is opaque, the others are dimmed, and the highlight
-glides between floors when you switch tabs. The floors are snapshots: the
-circle canvas updates live with the sliders, but a floor is only written to
-the cylinder when you leave its tab (or all at once when a saved shape is
-loaded). Tilt, radius and spacing are constants at the top of `sculpture.js`.
+The order lives in one place: `CHARACTERISTICS` in `assets/js/engine.js`.
+
+How the numbers become a tree (all in `assets/js/tree/model.js`, which has no
+DOM or three.js in it, so it can be tested in Node):
+
+| Data                          | Becomes                                                        |
+| ----------------------------- | -------------------------------------------------------------- |
+| a peak's masc / fem / other   | the **direction** of its branch (same vector as the heatmap)   |
+| its highest of the three      | the branch **length**                                          |
+| its weight                    | the leaf sphere's **area** (radius ∝ √weight) and limb thickness |
+| masc / fem / other proportions | the sphere's **colour**, mixed in OKLab from blue / pink / green |
+| the floor's peaks             | trunk position: floor 1 on the axis, every other floor leans to the weighted centre of mass |
+| peaks that point the same way, or whose spheres overlap | one shared limb that forks near the end |
+
+Tunable constants (reach, trunk lean, sphere size, floor spacing…) are at the
+top of `model.js`. Colours: `BASE_COLORS`.
+
+Editor behaviour:
+
+- **No tree while you create a shape for the first time.** It appears when you
+  press *Save results* (or straight away when you load a stored shape).
+- The circle canvas follows the sliders live; the tree does **not**. A floor's
+  branches only grow (or regrow) when you leave its tab, or on save.
+- The floor being edited is solid, the others fade, and the highlight glides
+  between floors. The two arrows under the tree rotate it (tap = 45°, hold =
+  keep spinning).
+- *Start a new shape instead* hides the tree again until the next save.
+
+## The forest
+
+`The forest` shows every saved tree at once. Trees are planted on a spiral in
+the order they were saved (`created_at`), so a new tree always grows on the
+outside and nobody's tree moves; the ground and camera widen as it grows.
+Hover a name in the list and every other tree fades while that one comes forward.
+The page needs WebGL; without it the tree and forest are simply not shown.
+
+## Three.js bundle
+
+Modern three.js no longer ships a plain `<script>` build, so
+`assets/js/vendor/three.custom.min.js` is a trimmed bundle (only the parts in
+`three-entry.js`, exposed as a global `THREE`). To rebuild it:
+
+```bash
+npm i three esbuild
+npx esbuild assets/js/vendor/three-entry.js --bundle --format=iife \
+  --global-name=THREE --minify --legal-comments=none \
+  --outfile=assets/js/vendor/three.custom.min.js
+```
+
+If you use a new three.js class in `tree/`, add it to `three-entry.js` first.
 
 ## Languages
 
@@ -88,6 +141,9 @@ generated in the browser (no external service). To force a fixed address
 
 1. Create a project and run `supabase/setup.sql` in the SQL editor.
 2. Put the project URL and **anon** key in `assets/js/config.js`.
+
+`setup.sql` also adds a `created_at` column, which The forest uses to keep every
+tree in place. It is safe to re-run on an existing project.
 
 The anon key is public by design; access control comes from the RLS policies.
 The provided policies are deliberately open (anyone can read, insert and

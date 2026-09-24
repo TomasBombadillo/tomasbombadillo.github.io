@@ -454,6 +454,39 @@ input[type=range] { width: 100%; cursor: pointer; }
 .share-actions > button { flex: 1 1 auto; padding-inline: 12px; }
 .share-status { min-height: 1.3em; margin: 10px 0 0; font-size: 12.5px; color: var(--ink-soft); }
 
+/* ---------- Tree (beside the circle canvas in the editor) ---------- */
+.tree-slot { flex-direction: column; align-items: center; }
+.tree-panel { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.tree-canvas { touch-action: pan-y; }
+.tree-controls { display: flex; gap: 12px; }
+.tree-rot { touch-action: manipulation; user-select: none; -webkit-user-select: none; width: 40px; height: 40px; }
+.tree-rot:active { color: var(--accent); border-color: var(--accent); background: var(--paper); }
+
+/* ---------- The forest ---------- */
+#view-forest {
+  position: fixed;
+  inset: 0;
+  z-index: 15;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 50% 62%, #1f4a3c 0%, transparent 62%),
+    linear-gradient(to bottom, #09161f 0%, #0e2a20 100%);
+}
+#forestCanvas {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%; max-width: none;
+  background: transparent; border: none; border-radius: 0;
+}
+.forest-header { position: relative; z-index: 2; pointer-events: none; }
+.forest-names {
+  position: absolute; z-index: 2;
+  right: clamp(16px, 3vw, 48px); top: 50%;
+  transform: translateY(-50%);
+}
+
 /* ---------- The world ---------- */
 #view-world {
   position: fixed;
@@ -606,6 +639,7 @@ input[type=range] { width: 100%; cursor: pointer; }
   .world-half { flex-direction: column; padding: 20px; gap: 16px; }
   .canvas-stack { width: min(70vw, 36vh, 340px); }
   .world-names { max-width: none; width: 100%; flex-direction: row; flex-wrap: wrap; justify-content: center; max-height: none; }
+  .forest-names { left: 12px; right: 12px; top: auto; bottom: 14px; transform: none; width: auto; }
 
   #view-world {
     background:

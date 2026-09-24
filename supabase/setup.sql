@@ -21,6 +21,14 @@ create table if not exists public.shapes (
 alter table public.shapes
   add column if not exists name_visible boolean not null default true;
 
+-- "The forest" plants trees in the order people saved them, so a new tree
+-- always grows on the outside and nobody's tree ever moves. That needs a
+-- timestamp. Rows saved before this migration all get "now" (they keep a
+-- stable order among themselves via id); every new row gets its real time.
+-- Without this column the app still works: it falls back to ordering by id.
+alter table public.shapes
+  add column if not exists created_at timestamptz not null default now();
+
 
 -- -------------------------------------------------------------------
 -- 2. Row Level Security
@@ -70,7 +78,7 @@ drop policy if exists "anon can delete test rows" on public.shapes;
 -- -------------------------------------------------------------------
 -- 4. Verify
 --    Expect exactly three policies: select, insert, update.
---    Expect columns: id, display_name, shape, name_visible.
+--    Expect columns: id, display_name, shape, name_visible, created_at.
 -- -------------------------------------------------------------------
 select policyname, cmd
 from pg_policies

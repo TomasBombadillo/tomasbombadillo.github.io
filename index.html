@@ -40,6 +40,9 @@
       <button class="nav-item" data-view="world">
         <span class="nav-ico">⊙</span> <span data-i18n="nav.world">The world</span>
       </button>
+      <button class="nav-item" data-view="forest">
+        <span class="nav-ico">♣</span> <span data-i18n="nav.forest">The forest</span>
+      </button>
       <button class="nav-item" data-view="inspiration">
         <span class="nav-ico">✦</span> <span data-i18n="nav.inspiration">Inspiration</span>
       </button>
@@ -209,6 +212,19 @@
       </div>
     </section>
 
+    <!-- The forest -->
+    <section id="view-forest" class="view hidden">
+      <canvas id="forestCanvas" role="img" data-i18n-aria-label="forest.alt"></canvas>
+
+      <div class="world-header forest-header">
+        <h1 data-i18n="forest.title">The forest</h1>
+        <p id="forestCount"></p>
+        <p id="forestMsg" class="world-msg hidden"></p>
+      </div>
+
+      <div id="forestNames" class="world-names forest-names"></div>
+    </section>
+
   </main>
 </div>
 
@@ -241,14 +257,18 @@
   <p id="shareStatus" class="share-status" role="status" aria-live="polite"></p>
 </dialog>
 
-<!-- Order matters: i18n core → locales → config → engine → sculpture → share → app -->
+<!-- Order matters: libraries → i18n core → locales → config → engine → tree → share → app -->
 <script src="assets/js/vendor/qrcode.js"></script>
+<script src="assets/js/vendor/three.custom.min.js"></script>
 <script src="assets/js/i18n.js"></script>
 <script src="assets/js/locales/en.js"></script>
 <script src="assets/js/locales/es.js"></script>
 <script src="assets/js/config.js"></script>
 <script src="assets/js/engine.js"></script>
-<script src="assets/js/sculpture.js"></script>
+<script src="assets/js/tree/model.js"></script>
+<script src="assets/js/tree/geometry.js"></script>
+<script src="assets/js/tree/editor-view.js"></script>
+<script src="assets/js/tree/forest-view.js"></script>
 <script src="assets/js/share.js"></script>
 <script src="assets/js/app.js"></script>
 </body>
