@@ -1,41 +1,48 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
   <defs>
-    <!-- Peak 1: Top Axis (22 units from center at 270°) -->
-    <radialGradient id="peakTop" cx="50%" cy="28%" r="50%">
-      <stop offset="0%" stop-color="#fde725" stop-opacity="0.95"/> <!-- Yellow Core -->
-      <stop offset="45%" stop-color="#21918c" stop-opacity="0.7"/> <!-- Teal Mid-density -->
-      <stop offset="100%" stop-color="#440154" stop-opacity="0"/>  <!-- Transparent Edge -->
-    </radialGradient>
-    
-    <!-- Peak 2: Bottom-Right Axis (22 units from center at 30°) -->
-    <radialGradient id="peakRight" cx="69.1%" cy="61%" r="50%">
-      <stop offset="0%" stop-color="#fde725" stop-opacity="0.95"/>
-      <stop offset="45%" stop-color="#21918c" stop-opacity="0.7"/>
-      <stop offset="100%" stop-color="#440154" stop-opacity="0"/>
-    </radialGradient>
-    
-    <!-- Peak 3: Bottom-Left Axis (22 units from center at 150°) -->
-    <radialGradient id="peakLeft" cx="30.9%" cy="61%" r="50%">
-      <stop offset="0%" stop-color="#fde725" stop-opacity="0.95"/>
-      <stop offset="45%" stop-color="#21918c" stop-opacity="0.7"/>
-      <stop offset="100%" stop-color="#440154" stop-opacity="0"/>
+    <!-- Same three anchor points as the previous favicon's three peaks
+         (top axis, bottom-right, bottom-left, radius 22 from center) —
+         now also matching the app's own canvas orientation: Masc top,
+         Fem front-right, Other front-left. -->
+
+    <!-- Leaf 1: Masc, top (50, 28) -->
+    <radialGradient id="leafMasc" cx="50" cy="28" r="22" fx="44" fy="21" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#dbeafe" stop-opacity="0.95"/>
+      <stop offset="45%" stop-color="#2563eb" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#2563eb" stop-opacity="0"/>
     </radialGradient>
 
-    <!-- Symmetric Reuleaux Triangle Boundary Path (3-fold rotational symmetry) -->
-    <clipPath id="reuleauxBoundary">
-      <path d="M 50 8 A 73 73 0 0 1 86.37 71 A 73 73 0 0 1 13.63 71 A 73 73 0 0 1 50 8 Z"/>
-    </clipPath>
+    <!-- Leaf 2: Fem, bottom-right (69.1, 61) -->
+    <radialGradient id="leafFem" cx="69.1" cy="61" r="22" fx="63.1" fy="54" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#fce7f3" stop-opacity="0.95"/>
+      <stop offset="45%" stop-color="#ec4899" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#ec4899" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Leaf 3: Other, bottom-left (30.9, 61) -->
+    <radialGradient id="leafOtro" cx="30.9" cy="61" r="22" fx="24.9" fy="54" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#d1fae5" stop-opacity="0.95"/>
+      <stop offset="45%" stop-color="#10b981" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#10b981" stop-opacity="0"/>
+    </radialGradient>
   </defs>
 
-  <!-- Base Density Field (Deep Purple) -->
-  <path d="M 50 8 A 73 73 0 0 1 86.37 71 A 73 73 0 0 1 13.63 71 A 73 73 0 0 1 50 8 Z" fill="#440154" />
-  
-  <!-- Density Gradient Layers -->
-  <rect width="100" height="100" fill="url(#peakTop)" clip-path="url(#reuleauxBoundary)" />
-  <rect width="100" height="100" fill="url(#peakRight)" clip-path="url(#reuleauxBoundary)" />
-  <rect width="100" height="100" fill="url(#peakLeft)" clip-path="url(#reuleauxBoundary)" />
-  
-  <!-- Outer Reuleaux Outline -->
-  <path d="M 50 8 A 73 73 0 0 1 86.37 71 A 73 73 0 0 1 13.63 71 A 73 73 0 0 1 50 8 Z" 
-        fill="none" stroke="#21918c" stroke-width="3" opacity="0.9" />
+  <!-- Floor-1 ring: the same amber ring that marks the active floor at the
+       base of the tree in the app. -->
+  <ellipse cx="50" cy="90" rx="30" ry="9" fill="none" stroke="#d97706" stroke-width="3" opacity="0.85"/>
+
+  <!-- Root flare -->
+  <ellipse cx="50" cy="94" rx="15" ry="6.5" fill="#6d4526"/>
+
+  <!-- Trunk: a lower and an upper segment (tapering), plus two side branches
+       forking off it — the same wood colour as the 3D tree. -->
+  <path d="M50,97 C48,88 52,80 50,72" fill="none" stroke="#8b5a2b" stroke-width="10" stroke-linecap="round"/>
+  <path d="M50,72 C49,60 51,46 50,32" fill="none" stroke="#8b5a2b" stroke-width="7" stroke-linecap="round"/>
+  <path d="M50,75 Q60,71 64,64" fill="none" stroke="#8b5a2b" stroke-width="6" stroke-linecap="round"/>
+  <path d="M50,75 Q40,71 36,64" fill="none" stroke="#8b5a2b" stroke-width="6" stroke-linecap="round"/>
+
+  <!-- The three leaves, overlapping softly like the original's three density peaks -->
+  <circle cx="30.9" cy="61" r="22" fill="url(#leafOtro)" stroke="#10b981" stroke-width="1.2" stroke-opacity="0.55"/>
+  <circle cx="69.1" cy="61" r="22" fill="url(#leafFem)" stroke="#ec4899" stroke-width="1.2" stroke-opacity="0.55"/>
+  <circle cx="50" cy="28" r="22" fill="url(#leafMasc)" stroke="#2563eb" stroke-width="1.2" stroke-opacity="0.55"/>
 </svg>
