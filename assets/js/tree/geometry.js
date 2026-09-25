@@ -39,6 +39,19 @@ const TreeGeometry = (function () {
       { map: leafTexture(), vertexColors: true, flatShading: true, roughness: 0.85, metalness: 0 }, opts));
   }
 
+  /* Fade a material. three.js compiles a special "opaque" shader (alpha forced to 1)
+     for materials with transparent === false, and only rebuilds it when told to —
+     so flipping `transparent` without needsUpdate silently ignores the opacity. */
+  function setOpacity(m, a) {
+    m.opacity = a;
+    const tr = a < 0.995;
+    if (m.transparent !== tr) {
+      m.transparent = tr;
+      m.depthWrite = !tr;
+      m.needsUpdate = true;
+    }
+  }
+
   /* ---------- a tapered, curved tube (branches & trunk) ---------- */
   function taperedTube(curve, segments, radiusAt) {
     const frames = curve.computeFrenetFrames(segments, false);
@@ -234,17 +247,14 @@ const TreeGeometry = (function () {
   }
 
   const BUTTERFLY_COLORS = ['#f97316', '#facc15', '#a855f7', '#06b6d4', '#ef4444', '#f472b6', '#84cc16'];
-  let _glassTex = null;
-  function glassTexture() {
-    if (_glassTex) return _glassTex;
-    const W = 1024, H = 512, c = document.createElement('canvas');
-    c.width = W; c.height = H;
-    const ctx = c.getContext('2d');
-    ctx.fillStyle = 'rgba(190,210,235,0.10)';               // the glass itself
-    ctx.fillRect(0, 0, W, H);
 
+  /* Paints small, still butterflies of simple colours onto a transparent canvas.
+     size: multiplier for the butterflies; count: how many; same seed → same layout. */
+  function paintButterflies(ctx, W, H, size0, count) {
     const rand = rng(21);
     const placed = [];
+    const k = size0 / 0.62;                                       // spacing scales with butterfly size
+    const gapX = 80 * k, gapY = 60 * k;
     const butterfly = (x, y, rot, size, color) => {
       ctx.save();
       ctx.translate(x, y); ctx.rotate(rot); ctx.scale(size, size);
@@ -266,31 +276,59 @@ const TreeGeometry = (function () {
       ctx.restore();
     };
     let tries = 0;
-    while (placed.length < 30 && tries++ < 800) {
+    while (placed.length < count && tries++ < 800) {
       const x = rand() * W, y = 40 + rand() * (H - 80);
-      if (placed.some(q => Math.min(Math.abs(q.x - x), W - Math.abs(q.x - x)) < 80 && Math.abs(q.y - y) < 60)) continue;
+      if (placed.some(q => Math.min(Math.abs(q.x - x), W - Math.abs(q.x - x)) < gapX && Math.abs(q.y - y) < gapY)) continue;
       placed.push({ x, y });
-      const size = 0.62 + rand() * 0.42, rot = (rand() - 0.5) * 0.9;
+      const size = size0 + rand() * size0 * (0.42 / 0.62), rot = (rand() - 0.5) * 0.9;
       const color = BUTTERFLY_COLORS[Math.floor(rand() * BUTTERFLY_COLORS.length)];
       butterfly(x, y, rot, size, color);
       if (x < 40) butterfly(x + W, y, rot, size, color);           // wrap across the seam
       if (x > W - 40) butterfly(x - W, y, rot, size, color);
     }
-    _glassTex = new THREE.CanvasTexture(c);
-    _glassTex.colorSpace = THREE.SRGBColorSpace;
-    return _glassTex;
   }
 
-  function glassMesh() {
+  function makeTexture(canvas) {
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    return tex;
+  }
+  function newCanvas(W, H) {
+    const c = document.createElement('canvas');
+    c.width = W; c.height = H;
+    return c;
+  }
+
+  let _glassTex = null;
+  function glassTexture() {                                     // glass tint + small butterflies (the editor's cylinder)
+    if (_glassTex) return _glassTex;
+    const W = 1024, H = 512, c = newCanvas(W, H), ctx = c.getContext('2d');
+    ctx.fillStyle = 'rgba(190,210,235,0.10)';
+    ctx.fillRect(0, 0, W, H);
+    paintButterflies(ctx, W, H, 0.62, 30);
+    return (_glassTex = makeTexture(c));
+  }
+
+  let _bfTex = null;
+  function butterflyTexture() {                                 // butterflies only, a little bigger (forest hover)
+    if (_bfTex) return _bfTex;
+    const W = 1024, H = 512, c = newCanvas(W, H);
+    paintButterflies(c.getContext("2d"), W, H, 1.15, 20);
+    return (_bfTex = makeTexture(c));
+  }
+
+  function shell(texture, opacity) {
     const g = new THREE.CylinderGeometry(C.R, C.R, C.HEIGHT, 56, 1, true);
     g.translate(0, C.HEIGHT / 2, 0);
     const m = new THREE.MeshBasicMaterial({
-      map: glassTexture(), transparent: true, side: THREE.DoubleSide, depthWrite: false
+      map: texture, transparent: true, opacity, side: THREE.DoubleSide, depthWrite: false
     });
     const mesh = new THREE.Mesh(g, m);
-    mesh.renderOrder = 10;
+    mesh.renderOrder = 10;                                      // drawn after the tree, seen through
     return mesh;
   }
+  const glassMesh = () => shell(glassTexture(), 1);             // the editor's cylinder
+  const butterflyShell = () => shell(butterflyTexture(), 0);    // invisible until shown
 
   /* Lights shared by every scene. */
   function addLights(scene) {
@@ -303,6 +341,6 @@ const TreeGeometry = (function () {
   return {
     woodMaterial, earthMaterial, leafMaterial,
     floorGeometries, trunkGeometry, baseGeometries, staticTree,
-    glassMesh, leafTexture, glassTexture, addLights
+    glassMesh, butterflyShell, setOpacity, leafTexture, glassTexture, addLights
   };
 })();

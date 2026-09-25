@@ -161,19 +161,14 @@ const TreeView = (function () {
   }
 
   /* ---------- per-frame look ---------- */
-  function setOpacity(m, a) {
-    m.opacity = a;
-    const tr = a < 0.995;
-    if (m.transparent !== tr) { m.transparent = tr; m.depthWrite = !tr; }
-  }
   const weight = i => Math.max(0, 1 - Math.abs(s.cursor - i));
 
   function applyLook() {
     s.floors.forEach((f, i) => {
       const w = weight(i);
       const a = DIM + (1 - DIM) * w;
-      setOpacity(f.woodMat, a);
-      setOpacity(f.leafMat, a);
+      TreeGeometry.setOpacity(f.woodMat, a);
+      TreeGeometry.setOpacity(f.leafMat, a);
       f.guides.disc.material.opacity = 0.05 + 0.32 * w;
       f.guides.ring.material.opacity = 0.2 + 0.75 * w;
       f.guides.spokes.material.opacity = 0.12 + 0.45 * w;

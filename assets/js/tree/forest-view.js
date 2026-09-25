@@ -15,13 +15,14 @@ const Forest = (function () {
 
   const SPACING = 1.55;            // distance scale between trees
   const TREE_SCALE = 0.55;         // a forest tree is smaller than the editor tree
-  const DIM_ALPHA = 0.1;           // opacity of the trees that aren't highlighted
+  const DIM_ALPHA = 0.16;          // opacity of the trees that aren't highlighted
   const GOLDEN = 2.399963229728653;
   const ELEV = 27 * Math.PI / 180;
 
   const s = {
     ready: false, failed: false, running: false,
     canvas: null, renderer: null, scene: null, camera: null, ground: null, ring: null,
+    shell: null, shellId: null, shellAlpha: 0, shellTarget: 0,   // butterflies around the hovered tree
     trees: new Map(),        // id → tree
     queue: [],               // trees waiting to be built
     hi: null,                // highlighted id
@@ -41,12 +42,6 @@ const Forest = (function () {
   function sigOf(shape) {
     return dimIds().map(id => TreeModel.signature(shape && shape[id])).join('|');
   }
-  function setOpacity(m, a) {
-    m.opacity = a;
-    const tr = a < 0.995;
-    if (m.transparent !== tr) { m.transparent = tr; m.depthWrite = !tr; }
-  }
-
   function groundTexture() {
     const c = document.createElement('canvas');
     c.width = c.height = 256;
@@ -90,8 +85,15 @@ const Forest = (function () {
       new THREE.RingGeometry(0.74, 0.82, 48).rotateX(-Math.PI / 2),
       new THREE.MeshBasicMaterial({ color: 0xf59e0b, transparent: true, opacity: 0.9, depthWrite: false, side: THREE.DoubleSide }));
     s.ring.position.y = 0.005;
+    s.ring.scale.setScalar(TREE_SCALE);
     s.ring.visible = false;
     s.scene.add(s.ring);
+
+    // Butterflies (and only butterflies — no glass) that appear around the hovered tree.
+    s.shell = TreeGeometry.butterflyShell();
+    s.shell.visible = false;
+    s.shell.scale.setScalar(TREE_SCALE);
+    s.scene.add(s.shell);
 
     s.ro = new ResizeObserver(resize);
     s.ro.observe(canvas);
@@ -174,8 +176,8 @@ const Forest = (function () {
 
     s.trees.forEach(t => {
       t.alpha += (t.target - t.alpha) * (1 - Math.exp(-dt * 9));
-      setOpacity(t.woodMat, t.alpha);
-      setOpacity(t.leafMat, t.alpha);
+      TreeGeometry.setOpacity(t.woodMat, t.alpha);
+      TreeGeometry.setOpacity(t.leafMat, t.alpha);
       let sc = TREE_SCALE;
       if (t.grow) {
         const g = Math.min(1, (now - t.grow.t0) / t.grow.dur);
@@ -184,6 +186,18 @@ const Forest = (function () {
       }
       t.group.scale.setScalar(sc);
     });
+
+    // Ring + butterflies follow the highlighted tree (even if it was only just built).
+    const ht = s.hi != null ? s.trees.get(s.hi) : null;
+    s.ring.visible = !!ht;
+    if (ht) s.ring.position.set(ht.group.position.x, 0.005, ht.group.position.z);
+
+    s.shellAlpha += (s.shellTarget - s.shellAlpha) * (1 - Math.exp(-dt * 7));
+    if (Math.abs(s.shellTarget - s.shellAlpha) < 0.01) s.shellAlpha = s.shellTarget;
+    s.shell.material.opacity = s.shellAlpha;
+    s.shell.visible = s.shellAlpha > 0.01;
+    const st = s.shellId != null ? s.trees.get(s.shellId) : null;
+    if (st) s.shell.position.set(st.group.position.x, 0, st.group.position.z);
 
     s.renderer.render(s.scene, s.camera);
   }
@@ -212,16 +226,17 @@ const Forest = (function () {
       s.distTar = Math.max(6.2, radius * 2.15 + 3.6);
     },
 
-    /* Bring one tree forward and dim the rest; null clears it. */
+    /* Bring one tree forward and dim the rest; null clears it. While a tree is
+       highlighted its butterflies flutter in (still, not moving) around it;
+       when the highlight goes, they fade away again. */
     highlight(id) {
       s.hi = id;
       s.trees.forEach(applyHighlightTo);
-      const t = id != null ? s.trees.get(id) : null;
-      s.ring.visible = !!t;
-      if (t) {
-        s.ring.position.x = t.group.position.x;
-        s.ring.position.z = t.group.position.z;
-        s.ring.scale.setScalar(TREE_SCALE);
+      if (id != null) {
+        if (s.shellId !== id) { s.shellId = id; s.shellAlpha = 0; }   // new tree → start from invisible
+        s.shellTarget = 1;
+      } else {
+        s.shellTarget = 0;                                            // keep the position until they've faded
       }
     },
 

@@ -20,7 +20,7 @@ and the [Gender Unicorn](https://transstudent.org/gender/).
 │   ├── css/
 │   │   └── styles.css
 │   ├── img/
-│   │   └── favicon.svg
+│   │   └── favicon.svg   # the tree: three colour-mixed leaves + trunk + floor-1 ring
 │   └── js/
 │       ├── i18n.js           # language detection, t(), DOM translation
 │       ├── locales/
@@ -102,7 +102,8 @@ Editor behaviour:
 `The forest` shows every saved tree at once. Trees are planted on a spiral in
 the order they were saved (`created_at`), so a new tree always grows on the
 outside and nobody's tree moves; the ground and camera widen as it grows.
-Hover a name in the list and every other tree fades while that one comes forward.
+Hover a name in the list and every other tree (trunk and leaves) fades while that one
+comes forward and its butterflies appear around it; they disappear when you move away.
 The page needs WebGL; without it the tree and forest are simply not shown.
 
 ## Three.js bundle
